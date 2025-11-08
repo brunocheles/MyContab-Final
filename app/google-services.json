@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "721382389989",
+    "project_id": "mycontab-1ce1d",
+    "storage_bucket": "mycontab-1ce1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:721382389989:android:4dbb17eeb12080f40f3c0c",
+        "android_client_info": {
+          "package_name": "br.com.brunocheles.mycontab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "721382389989-ous8p810nocs96ahp4puq86asrv9qt7b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.brunocheles.mycontab",
+            "certificate_hash": "a1120f111277edfb209e6d81132d5ef396908ce0"
+          }
+        },
+        {
+          "client_id": "721382389989-v8qlc2hd65ar4lrik2e1mk9tvd38cr9f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi1aq6ow3UrxRXlFyXNlDtrUVjKMzpa1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "721382389989-v8qlc2hd65ar4lrik2e1mk9tvd38cr9f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
