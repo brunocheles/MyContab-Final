@@ -6,22 +6,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -34,13 +32,18 @@ import androidx.navigation3.ui.NavDisplay
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.Typography
+import br.com.brunocheles.mycontab.view.screens.ProfileScreen
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
 
 @Composable
 fun SetupNestedNavDisplay(
-    onNavigateToFullscreen: (Screen) -> Unit
+    onNavigateToFullscreen: (Screen) -> Unit,
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
     val backStack = rememberNavBackStack(BottomBarScreen.Home)
+
+    val authUiState by authViewModel.uiState.collectAsState()
 
     var currentBottomBarScreen: BottomBarScreen by rememberSaveable(
         stateSaver = BottomBarScreenSaver
@@ -150,15 +153,14 @@ fun SetupNestedNavDisplay(
                     }
                 }
                 entry<BottomBarScreen.Profile> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Profile",
-                            style = Typography.titleLarge
-                        )
-                    }
+                    ProfileScreen(
+                        authUiState = authUiState,
+                        onLogoutClick = {
+                            authViewModel.logout()
+                            backStack.clear()
+                            onNavigateToFullscreen(Screen.Splash)
+                        }
+                    )
                 }
             }
         )

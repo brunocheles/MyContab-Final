@@ -73,7 +73,8 @@ fun LoginScreen(
     resetLogin: () -> Unit,
     onLoginClick: (String, String) -> Unit,
     onRegisterClick: () -> Unit,
-    onGoogleLogin: (String) -> Unit
+    onGoogleLogin: (String) -> Unit,
+    onNavigateToHome: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -89,7 +90,17 @@ fun LoginScreen(
         null -> LoginState.Idle
     }
 
-    LaunchedEffect(Unit) { resetLogin() }
+    LaunchedEffect(uiState.success) {
+        if (uiState.success == true) {
+            // Se o login foi um sucesso (via Google ou Email/Senha), navega para a Home
+            onNavigateToHome()
+            // Reseta o estado para limpar o flag 'success', evitando navegação dupla
+            resetLogin()
+        } else if (uiState.success == false) {
+            // Se falhou, marca que houve tentativa para mostrar a mensagem de erro
+            loginAttempted = true
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -353,6 +364,7 @@ fun LoginScreenPreview() {
         onLoginClick = { _, _ -> },
         onRegisterClick = {},
         resetLogin = {},
-        onGoogleLogin = { _ -> }
+        onGoogleLogin = { _ -> },
+        onNavigateToHome = {}
     )
 }

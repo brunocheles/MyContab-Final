@@ -56,6 +56,10 @@ fun SetupNavDisplay(
                     onRegisterClick = { backStack.add(Screen.Register) },
                     onGoogleLogin = { idToken ->
                         authViewModel.loginWithGoogle(idToken)
+                    },
+                    onNavigateToHome = {
+                        backStack.clear()
+                        backStack.add(Screen.NestedGraph)
                     }
                 )
             }
