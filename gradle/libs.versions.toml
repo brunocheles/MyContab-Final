@@ -11,8 +11,9 @@ junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.9.4"
-activityCompose = "1.11.0"
+activityCompose = "1.12.0-rc01"
 composeBom = "2025.11.00"
+lottieCompose = "6.7.1"
 playServicesAuth = "21.4.0"
 roomCompiler = "2.8.3"
 roomKtx = "2.8.3"
@@ -62,6 +63,7 @@ dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = 
 #Auth
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottieCompose" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }

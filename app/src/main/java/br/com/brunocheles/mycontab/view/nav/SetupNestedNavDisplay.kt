@@ -13,6 +13,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.Typography
 import br.com.brunocheles.mycontab.view.screens.ProfileScreen
+import br.com.brunocheles.mycontab.view.viewmodel.AuthUiEvent
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
 
 @Composable
@@ -157,8 +159,6 @@ fun SetupNestedNavDisplay(
                         authUiState = authUiState,
                         onLogoutClick = {
                             authViewModel.logout()
-                            backStack.clear()
-                            onNavigateToFullscreen(Screen.Splash)
                         }
                     )
                 }

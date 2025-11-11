@@ -1,5 +1,7 @@
 package br.com.brunocheles.mycontab.model.data.modules
 
+import br.com.brunocheles.mycontab.model.dao.UserDao
+import br.com.brunocheles.mycontab.model.data.repositories.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
 import dagger.Provides
@@ -15,5 +17,14 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth {
         return FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(
+        userDao: UserDao,
+        firebaseAuth: FirebaseAuth
+    ): UserRepository {
+        return UserRepository(userDao, firebaseAuth)
     }
 }

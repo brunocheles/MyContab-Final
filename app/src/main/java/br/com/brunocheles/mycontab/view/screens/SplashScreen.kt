@@ -62,7 +62,7 @@ fun SplashScreen(
     LaunchedEffect(isAuthChecked) {
         if (isAuthChecked) {
             // Pequeno delay para garantir que o usuário veja a tela de splash
-            delay(animationDuration / 2)
+            delay(animationDuration)
 
             if (userLogged != null) {
                 // Usuário logado: navega para a Home

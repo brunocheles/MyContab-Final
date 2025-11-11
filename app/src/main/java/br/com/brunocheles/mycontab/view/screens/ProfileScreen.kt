@@ -9,6 +9,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +26,7 @@ import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.view.components.LoadingShimmer
 import br.com.brunocheles.mycontab.view.components.UserSettingsContent
 import br.com.brunocheles.mycontab.view.states.AuthUiState
+import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileScreen(
@@ -29,6 +35,16 @@ fun ProfileScreen(
 ) {
     val user = authUiState.userLogged
     val isLoading = authUiState.isLoading
+    var showLoggedOutView by remember { mutableStateOf(false) }
+
+    LaunchedEffect(user, isLoading) {
+        if (user == null && !isLoading) {
+            delay(500) // Ajuste o tempo conforme necessário (ex: 500ms)
+            showLoggedOutView = true
+        } else {
+            showLoggedOutView = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -45,10 +61,11 @@ fun ProfileScreen(
                 // 🔹 Conteúdo principal
                 UserSettingsContent(user = user, onLogoutClick = onLogoutClick)
             }
-
-            else -> {
-                // 🔹 Usuário desconectado (após logout)
+            showLoggedOutView -> {
                 LoggedOutView()
+            }
+            else -> {
+                LoadingShimmer()
             }
         }
     }

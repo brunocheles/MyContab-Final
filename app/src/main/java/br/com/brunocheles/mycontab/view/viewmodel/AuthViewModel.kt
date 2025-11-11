@@ -4,15 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.brunocheles.mycontab.model.di.DataStoreManager
 import br.com.brunocheles.mycontab.model.items.User
-import br.com.brunocheles.mycontab.model.repositories.UserRepository
+import br.com.brunocheles.mycontab.model.data.repositories.UserRepository
 import br.com.brunocheles.mycontab.view.states.AuthUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+
+sealed interface AuthUiEvent {
+    data class ShowToast(val message: String) : AuthUiEvent
+    data object NavigateToLoading : AuthUiEvent
+}
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -22,6 +30,9 @@ class AuthViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    private val _uiEvent = Channel<AuthUiEvent>(Channel.BUFFERED)
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     private val _isAuthChecked = MutableStateFlow(false)
     val isAuthChecked: StateFlow<Boolean> = _isAuthChecked
@@ -75,7 +86,15 @@ class AuthViewModel @Inject constructor(
     fun registerWithEmail(username: String, email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, success = null) }
-            val result = userRepository.registerWithEmail(email, password, username)
+            val result = userRepository.registerWithEmail(email, username,password)
+
+            result.onSuccess {
+                _uiEvent.send(AuthUiEvent.ShowToast("Conta criada com sucesso!"))
+            }
+            result.onFailure {
+                _uiEvent.send(AuthUiEvent.ShowToast("Erro ao criar conta!"))
+            }
+
             handleAuthResult(result)
         }
     }
@@ -126,6 +145,7 @@ class AuthViewModel @Inject constructor(
             userRepository.logout()
             dataStoreManager.logout()
             _uiState.update { AuthUiState() }
+            _uiEvent.trySend(AuthUiEvent.NavigateToLoading)
         }
     }
 

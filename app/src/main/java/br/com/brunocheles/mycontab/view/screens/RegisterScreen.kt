@@ -1,10 +1,5 @@
 package br.com.brunocheles.mycontab.view.screens
 
-import android.app.Activity
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,15 +27,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,80 +40,63 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.ui.theme.Gray
 import br.com.brunocheles.mycontab.ui.theme.Light
-import br.com.brunocheles.mycontab.ui.theme.LightBlue
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
 import br.com.brunocheles.mycontab.ui.theme.Red
 import br.com.brunocheles.mycontab.view.components.Logo
-import br.com.brunocheles.mycontab.view.components.TrailingIconButton
 import br.com.brunocheles.mycontab.view.states.AuthUiState
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(
-    activity: Activity,
+fun RegisterScreen(
     uiState: AuthUiState,
-    resetLogin: () -> Unit,
-    onLoginClick: (String, String) -> Unit,
-    onRegisterClick: () -> Unit,
-    onGoogleLogin: (String) -> Unit,
-    onNavigateToHome: () -> Unit
+    resetRegister: () -> Unit,
+    onRegisterClick: (String, String, String) -> Unit,
+    onLoginClick: () -> Unit
 ) {
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var loginAttempted by remember { mutableStateOf(false) }
+    var cPassword by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    val allFieldsFilled = email.isNotBlank() && password.isNotBlank()
     val focusManager = LocalFocusManager.current
 
-    val loginState = when (uiState.success) {
-        true -> LoginState.Success
-        false -> LoginState.Error
-        null -> LoginState.Idle
-    }
-
     LaunchedEffect(Unit) {
-        resetLogin() // Deve chamar authViewModel.resetState()
-        loginAttempted = false
+        resetRegister()
     }
 
-    LaunchedEffect(uiState.success) {
-        if (uiState.success == true) {
-            // Se o login foi um sucesso (via Google ou Email/Senha), navega para a Home
-            onNavigateToHome()
-            // Reseta o estado para limpar o flag 'success', evitando navegação dupla
-            resetLogin()
-        } else if (uiState.success == false) {
-            // Se falhou, marca que houve tentativa para mostrar a mensagem de erro
-            loginAttempted = true
-        }
-    }
+    val allFieldsFilled = username.isNotBlank() &&
+            email.isNotBlank() &&
+            password.isNotBlank() &&
+            cPassword.isNotBlank()
+
+    val passwordsMatch = password == cPassword
+    val isFormValid = allFieldsFilled && passwordsMatch
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Light),
+            .background(Light)
+            .padding(horizontal = 24.dp),
         contentAlignment = Alignment.TopCenter
-    ) {
+    )
+    {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(start = 24.dp, top = 60.dp, end = 24.dp)
+            modifier = Modifier.padding(top = 60.dp)
         )
         {
             Logo()
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            // Email
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = email,
@@ -131,21 +105,20 @@ fun LoginScreen(
                 label = { Text("Email") },
                 leadingIcon = {
                     Icon(
-                        tint = Gray,
                         painter = painterResource(R.drawable.rounded_alternate_email),
                         contentDescription = "email icon"
                     )
                 },
-                shape = MyContabShapes.extraLarge,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
+                shape = MyContabShapes.extraLarge,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Principal,
+                    unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
                     unfocusedLabelColor = Gray,
-                    unfocusedBorderColor = PrincipalLight,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     unfocusedTextColor = Gray.copy(alpha = 0.7f),
@@ -155,6 +128,39 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Username
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = username,
+                onValueChange = { username = it },
+                singleLine = true,
+                label = { Text("Name") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.rounded_profile),
+                        contentDescription = "user icon"
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                shape = MyContabShapes.extraLarge,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Principal,
+                    unfocusedBorderColor = PrincipalLight,
+                    focusedLabelColor = Principal,
+                    unfocusedLabelColor = Gray,
+                    unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                    focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
+                    focusedTextColor = Gray
+                )
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Password
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = password,
@@ -163,35 +169,25 @@ fun LoginScreen(
                 label = { Text("Password") },
                 leadingIcon = {
                     Icon(
-                        tint = Gray,
                         painter = painterResource(R.drawable.rounded_lock),
-                        contentDescription = "lock icon"
+                        contentDescription = "password icon"
                     )
                 },
                 trailingIcon = {
-                    val icon =
-                        if (isPasswordVisible) R.drawable.rounded_visibility_off else R.drawable.rounded_visibility
+                    val icon = if (isPasswordVisible) R.drawable.rounded_visibility_off else R.drawable.rounded_visibility
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
-                            tint = Gray,
                             painter = painterResource(icon),
                             contentDescription = "toggle password visibility"
                         )
                     }
                 },
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                shape = MyContabShapes.extraLarge,
-                keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
+                    imeAction = ImeAction.Next
                 ),
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
-                    if (allFieldsFilled) {
-                        loginAttempted = true
-                        onLoginClick(email, password)
-                    }
-                }),
+                shape = MyContabShapes.extraLarge,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
@@ -206,15 +202,69 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Error message
-            AnimatedVisibility(
-                // Mostra se houve tentativa E se o ViewModel reportou um erro (errorMessage não nulo)
-                visible = loginAttempted && uiState.errorMessage != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+
+            // Confirm password
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = cPassword,
+                onValueChange = { cPassword = it },
+                singleLine = true,
+                label = { Text("Confirm Password") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.rounded_lock),
+                        contentDescription = "confirm password icon"
+                    )
+                },
+                trailingIcon = {
+                    val icon = if (isConfirmPasswordVisible) R.drawable.rounded_visibility_off else R.drawable.rounded_visibility
+                    IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
+                        Icon(
+                            painter = painterResource(icon),
+                            contentDescription = "toggle confirm password visibility"
+                        )
+                    }
+                },
+                visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    if (isFormValid) {
+                        onRegisterClick(email, username, password)
+                    }
+                }),
+                shape = MyContabShapes.extraLarge,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Principal,
+                    unfocusedBorderColor = PrincipalLight,
+                    focusedLabelColor = Principal,
+                    unfocusedLabelColor = Gray,
+                    unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                    focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
+                    focusedTextColor = Gray
+                )
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Senhas não coincidem
+            if (cPassword.isNotBlank() && !passwordsMatch) {
                 Text(
-                    text = uiState.errorMessage ?: "", // Usa a mensagem do ViewModel
+                    text = "As senhas não coincidem",
+                    color = Red,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // Mensagem de erro do UserUiState
+            uiState.errorMessage?.let { error ->
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = error,
                     color = Red,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center
@@ -227,26 +277,23 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                onClick = {
-                    loginAttempted = true
-                    onLoginClick(email, password)
-                },
-                enabled = allFieldsFilled && loginState != LoginState.Success,
+                onClick = { onRegisterClick(email, username, password) },
+                enabled = isFormValid,
                 shape = MyContabShapes.extraLarge,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Principal,
                     disabledContainerColor = PrincipalLight
                 )
             ) {
-                when (uiState.isLoading) {
-                    true -> CircularProgressIndicator(
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
                         color = Light,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(24.dp)
                     )
-
-                    false -> Text(
-                        text = "LOGIN",
+                } else {
+                    Text(
+                        text = "REGISTER",
                         fontWeight = FontWeight.Bold,
                         color = Light
                     )
@@ -255,122 +302,24 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            LoginWithGoogleButton(
-                activity = activity,
-                onIdTokenReady = { token ->
-                    onGoogleLogin(token)
-                },
-                onError = { msg ->
-                    Log.e("LoginScreen", "Erro no Google Sign-In: $msg")
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Register button
-            TextButton(onClick = { onRegisterClick() }) {
+            TextButton(onClick = { onLoginClick() }) {
                 Text(
-                    text = "Create new account with Email",
+                    text = "Already have an account? Login",
                     fontWeight = FontWeight.Bold,
                     color = Principal
-                )
-            }
-        }
-        if (loginState == LoginState.Success) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    color = Principal,
-                    strokeWidth = 3.dp
                 )
             }
         }
     }
 }
 
-enum class LoginState {
-    Idle, Success, Error
-}
-
 @Composable
-fun LoginWithGoogleButton(
-    activity: Activity,
-    onIdTokenReady: (String) -> Unit,
-    onError: (String) -> Unit
-) {
-    val webClientId = stringResource(R.string.default_web_client_id)
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    TrailingIconButton(
-        onClick = {
-            scope.launch {
-                try {
-                    // 1️⃣ Cria a opção do Google ID (use o web client ID)
-                    val googleIdOption = GetGoogleIdOption.Builder()
-                        .setServerClientId(webClientId)
-                        .setFilterByAuthorizedAccounts(false)
-                        .build()
-
-                    // 2️⃣ Cria a requisição
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
-                        .build()
-
-                    // 3️⃣ Pede o credential
-                    val credentialManager = CredentialManager.create(context)
-                    val result = credentialManager.getCredential(activity, request)
-
-                    // 4️⃣ Recupera o credential dentro do result
-                    val credential = result.credential
-
-                    // 5️⃣ Verifica se o tipo é o GoogleIdTokenCredential
-                    if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                        val idToken = googleIdTokenCredential.idToken
-
-                        if (idToken.isNotBlank()) {
-                            onIdTokenReady(idToken)
-                        } else {
-                            onError("Token Google vazio")
-                        }
-                    } else {
-                        onError("Tipo de credencial inesperado: ${credential.type}")
-                    }
-
-                } catch (e: Exception) {
-                    onError(e.localizedMessage ?: "Erro ao solicitar credencial")
-                }
-            }
-        },
-        text = "Login with Google".uppercase(),
-        icon = painterResource(R.drawable.google),
-        iconDesc = "Google",
-        colors = ButtonDefaults.buttonColors(
-            containerColor = LightBlue
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp),
-        shape = MyContabShapes.extraLarge,
-        iconTint = Color.Unspecified
-    )
-}
-
-@Composable
-@Preview(apiLevel = 35)
-fun LoginScreenPreview() {
-    LoginScreen(
-        activity = Activity(),
+@Preview(showBackground = true)
+fun RegisterScreenPreview() {
+    RegisterScreen(
         uiState = AuthUiState(),
-        onLoginClick = { _, _ -> },
-        onRegisterClick = {},
-        resetLogin = {},
-        onGoogleLogin = { _ -> },
-        onNavigateToHome = {}
+        resetRegister = {},
+        onRegisterClick = {_, _, _ -> },
+        onLoginClick = {}
     )
 }
