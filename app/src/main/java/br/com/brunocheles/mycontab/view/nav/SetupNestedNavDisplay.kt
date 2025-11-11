@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -36,11 +37,13 @@ import br.com.brunocheles.mycontab.ui.theme.Typography
 import br.com.brunocheles.mycontab.view.screens.ProfileScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthUiEvent
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
 
 @Composable
 fun SetupNestedNavDisplay(
     onNavigateToFullscreen: (Screen) -> Unit,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    groupViewModel: GroupViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val backStack = rememberNavBackStack(BottomBarScreen.Home)
