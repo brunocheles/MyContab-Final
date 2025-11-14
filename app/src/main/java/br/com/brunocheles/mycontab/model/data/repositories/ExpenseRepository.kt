@@ -1,5 +1,7 @@
 package br.com.brunocheles.mycontab.model.data.repositories
 
+import br.com.brunocheles.mycontab.model.components.Expense
+import br.com.brunocheles.mycontab.model.components.ExpenseInterface
 import br.com.brunocheles.mycontab.model.dao.ExpenseDao
 import br.com.brunocheles.mycontab.model.data.entities.ExpensesEntity
 import kotlinx.coroutines.Dispatchers
@@ -8,30 +10,105 @@ import javax.inject.Inject
 
 class ExpenseRepository @Inject constructor(
     private val expenseDao: ExpenseDao
-) {
+) : ExpenseInterface {
 
-    suspend fun getAllMonthExpenses(uId: String?, month: Int, year: Int): List<ExpensesEntity> =
-        withContext(Dispatchers.IO) {
-            expenseDao.getAllMonthExpenses(uId,month, year)
-        }
+    override suspend fun getAllMonthExpenses(userId: String, month: Int, year: Int): Result<List<Expense>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entities: List<ExpensesEntity> =
+                    expenseDao.getAllMonthExpenses(userId, month, year)
 
-    suspend fun getAllYearExpenses(uId: String?, year: Int): List<ExpensesEntity> =
-        withContext(Dispatchers.IO) {
-            expenseDao.getAllYearExpenses(uId, year)
-        }
+                val expenses: List<Expense> = entities.map { entity ->
+                    entity.toExpense() // Usando sua função de mapeamento
+                }
 
-    suspend fun update(expense: ExpensesEntity) =
-        withContext(Dispatchers.IO) {
-            expenseDao.updateExpense(expense)
+                Result.success(expenses)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
+    }
 
-    suspend fun insert(expense: ExpensesEntity) =
-        withContext(Dispatchers.IO) {
-            expenseDao.insertExpense(expense)
-        }
+    override suspend fun getAllYearExpenses(userId: String, year: Int): Result<List<Expense>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entities: List<ExpensesEntity> = expenseDao.getAllYearExpenses(userId, year)
 
-    suspend fun delete(expense: ExpensesEntity) =
-        withContext(Dispatchers.IO) {
-            expenseDao.deleteExpense(expense)
+                val expenses: List<Expense> = entities.map { entity ->
+                    entity.toExpense() // Usando sua função de mapeamento
+                }
+
+                Result.success(expenses)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
+    }
+
+    override suspend fun insertExpense(userId: String, expense: Expense): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entity = expense.toEntity(userId)
+
+                expenseDao.insertExpense(entity)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateExpense(userId: String, expense: Expense): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entity = expense.toEntity(userId)
+
+                expenseDao.updateExpense(entity)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun deleteExpense(userId: String, expense: Expense): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entity = expense.toEntity(userId)
+
+                expenseDao.deleteExpense(entity)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    private fun ExpensesEntity.toExpense(): Expense {
+        return Expense(
+            expenseId = expenseId,
+            expenseValue = expenseValue,
+            expenseDesc = expenseDesc,
+            expenseGroupId = expenseGroupId,
+            expenseGroupIcon = expenseGroupIcon,
+            expenseMonth = expenseMonth,
+            expenseYear = expenseYear,
+            expenseDay = expenseDay
+        )
+    }
+
+    private fun Expense.toEntity(userId: String): ExpensesEntity {
+        return ExpensesEntity(
+            // Você precisa do ID aqui se for fazer update/delete
+            expenseId = expenseId,
+            expenseValue = expenseValue,
+            expenseDesc = expenseDesc,
+            expenseGroupId = expenseGroupId,
+            expenseGroupIcon = expenseGroupIcon,
+            expenseMonth = expenseMonth,
+            expenseYear = expenseYear,
+            expenseDay = expenseDay,
+            expenseUserId = userId
+        )
+    }
 }

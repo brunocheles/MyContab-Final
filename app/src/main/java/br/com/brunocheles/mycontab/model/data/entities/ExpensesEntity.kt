@@ -18,7 +18,7 @@ data class ExpensesEntity(
     @ColumnInfo(name = "expense_description") val expenseDesc: String,
     @ColumnInfo(name = "expense_group_id") val expenseGroupId: Int,
     @ColumnInfo(name = "expense_group_icon") val expenseGroupIcon: Int,
-    @ColumnInfo(name = "expense_user_id") val expenseUserId: Int,
+    @ColumnInfo(name = "expense_user_id") val expenseUserId: String,
     @ColumnInfo(name = "expense_month") val expenseMonth: Int,
     @ColumnInfo(name = "expense_year") val expenseYear: Int,
     @ColumnInfo(name = "expense_day") val expenseDay: Int

@@ -9,6 +9,6 @@ data class AuthUiState(
     val errorMessage: String? = null,
     val userLogged: User? = null,
     val year: Int = LocalDate.now().year,
-    val month: Int = LocalDate.now().monthValue,
+    val month: Int = LocalDate.now().monthValue.minus(1),
     val actualScreen: Int = 0
 )

@@ -131,6 +131,12 @@ class AuthViewModel @Inject constructor(
     fun updateDate(year: Int, month: Int) {
         viewModelScope.launch {
             dataStoreManager.saveDate(year, month)
+            _uiState.update {
+                it.copy(
+                    year = year,
+                    month = month
+                )
+            }
         }
     }
 

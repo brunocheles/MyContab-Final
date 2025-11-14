@@ -20,11 +20,17 @@ import br.com.brunocheles.mycontab.view.screens.RegisterScreen
 import br.com.brunocheles.mycontab.view.screens.SplashScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthUiEvent
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
 
 @Composable
 fun SetupNavDisplay(
     activity: Activity,
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    groupViewModel: GroupViewModel = hiltViewModel(),
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel()
 ) {
     val authUiState by authViewModel.uiState.collectAsState()
     val isAuthChecked by authViewModel.isAuthChecked.collectAsState()
@@ -89,9 +95,12 @@ fun SetupNavDisplay(
             entry<Screen.NestedGraph> {
                 SetupNestedNavDisplay(
                     authViewModel = authViewModel,
+                    groupViewModel = groupViewModel,
+                    incomeViewModel = incomeViewModel,
+                    expenseViewModel = expenseViewModel,
                     onNavigateToFullscreen = { screen ->
                         backStack.add(screen)
-                    }
+                    },
                 )
             }
             entry<Screen.Loading> {

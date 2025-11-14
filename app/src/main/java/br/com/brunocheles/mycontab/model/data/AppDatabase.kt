@@ -21,7 +21,7 @@ import br.com.brunocheles.mycontab.model.entities.PlansEntity
         ExpensesEntity::class,
         PlansEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -18,7 +18,7 @@ data class IncomesEntity(
     @ColumnInfo(name = "income_description") val incomeDesc: String,
     @ColumnInfo(name = "income_group_id") val incomeGroupId: Int,
     @ColumnInfo(name = "income_group_icon") val incomeGroupIcon: Int,
-    @ColumnInfo(name = "income_user_id") val incomeUserId: Int,
+    @ColumnInfo(name = "income_user_id") val incomeUserId: String,
     @ColumnInfo(name = "income_month") val incomeMonth: Int,
     @ColumnInfo(name = "income_year") val incomeYear: Int,
     @ColumnInfo(name = "income_day") val incomeDay: Int
