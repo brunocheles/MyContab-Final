@@ -74,7 +74,9 @@ fun ShowValuePreview() {
         ShowValueItem(
             value = 0.00,
             name = "teste",
-            groupId = 1
+            day = 15,
+            groupId = 1,
+            isExpense = false
         ),
         groups = emptyList()
     )

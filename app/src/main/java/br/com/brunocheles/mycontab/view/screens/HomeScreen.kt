@@ -22,11 +22,16 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,24 +46,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
+import br.com.brunocheles.mycontab.model.entities.GroupsEntity
 import br.com.brunocheles.mycontab.ui.theme.Gray
 import br.com.brunocheles.mycontab.ui.theme.Green
-import br.com.brunocheles.mycontab.ui.theme.GreenDark
-import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
+import br.com.brunocheles.mycontab.ui.theme.GreenMedium
+import br.com.brunocheles.mycontab.ui.theme.LessLight
+import br.com.brunocheles.mycontab.ui.theme.NewGreen
+import br.com.brunocheles.mycontab.ui.theme.NewLight
+import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.Red
-import br.com.brunocheles.mycontab.ui.theme.RedDark
+import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.animations.AnimationController
 import br.com.brunocheles.mycontab.view.components.MonthPickerDialog
-import br.com.brunocheles.mycontab.view.components.ShowValue
 import br.com.brunocheles.mycontab.view.components.ValueType
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
 import br.com.brunocheles.mycontab.view.states.AuthUiState
@@ -80,8 +88,6 @@ fun HomeScreen(
     locale: Locale = Locale.ROOT
 ) {
     var isFABOpen by remember { mutableStateOf(false) }
-    var isIncomesOpen by remember { mutableStateOf(false) }
-    var isExpensesOpen by remember { mutableStateOf(false) }
     var isMonthChangeOpen by remember { mutableStateOf(false) }
 
     val selectedMonth = uiState.month
@@ -91,8 +97,6 @@ fun HomeScreen(
     val months = DateFormatSymbols(Locale.US).months.filter { it.isNotEmpty() }
 
     val transitionFAB = updateTransition(targetState = isFABOpen, label = "")
-    val transitionIncomes = updateTransition(targetState = isIncomesOpen, label = "")
-    val transitionExpenses = updateTransition(targetState = isExpensesOpen, label = "")
     val transitionMonth = updateTransition(targetState = isMonthChangeOpen, label = "")
     val animationController = remember { AnimationController() }
 
@@ -104,14 +108,6 @@ fun HomeScreen(
         transition = transitionFAB,
         valueForTrue = 1f
     )
-    val rotationIncome = animationController.animateFloatWithTransition(
-        transition = transitionIncomes,
-        valueForTrue = 180f
-    )
-    val rotationExpense = animationController.animateFloatWithTransition(
-        transition = transitionExpenses,
-        valueForTrue = 180f
-    )
     val rotationMonth = animationController.animateFloatWithTransition(
         transition = transitionMonth,
         valueForTrue = 180f
@@ -122,19 +118,35 @@ fun HomeScreen(
     val sumValues = incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 } -
             expenseUiState.expenseValuesMonth.sumOf { it?.expenseValue ?: 0.0 }
 
-    val incomesGroupedByDate = incomeUiState.incomeValuesMonth
-        .filterNotNull()
-        .sortedWith(compareBy { it.incomeDay })
-        .groupBy { income ->
-            "%02d".format(income.incomeDay)
-        }
+    val incomesMapped = incomeUiState.incomeValuesMonth.filterNotNull().map { income ->
+        ShowValueItem(
+            value = income.incomeValue,
+            name = income.incomeDesc,
+            day = income.incomeDay,
+            groupId = income.incomeGroupId,
+            isExpense = false
+        )
+    }
 
-    val expensesGroupedByDate = expenseUiState.expenseValuesMonth
-        .filterNotNull()
-        .sortedWith(compareBy { it.expenseDay })
-        .groupBy { income ->
-            "%02d".format(income.expenseDay)
-        }
+// 2. Mapeie os 'expenses' para 'ShowValueItem'
+    val expensesMapped = expenseUiState.expenseValuesMonth.filterNotNull().map { expense ->
+        ShowValueItem(
+            value = expense.expenseValue,
+            name = expense.expenseDesc,
+            day = expense.expenseDay,
+            groupId = expense.expenseGroupId,
+            isExpense = true
+        )
+    }
+
+    val allMonthValues = (incomesMapped + expensesMapped)
+
+    val groupedByDate: Map<Int, List<ShowValueItem>> = allMonthValues.groupBy { item ->
+        item.day
+    }
+
+    val sortedGroupedValues: Map<Int, List<ShowValueItem>> = groupedByDate
+        .toSortedMap(compareByDescending { it })
 
     Box(
         modifier = Modifier
@@ -153,10 +165,11 @@ fun HomeScreen(
                 .fillMaxSize()
         )
         {
-            Box(
-                modifier = Modifier.background(
-                    color = Principal,
-                    shape = RoundedCornerShape(bottomStartPercent = 15, bottomEndPercent = 15)
+            Card(
+                shape = RoundedCornerShape(bottomStartPercent = 15, bottomEndPercent = 15),
+                elevation = CardDefaults.cardElevation(5.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = LessLight
                 )
             )
             {
@@ -172,7 +185,7 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 40.dp),
+                            .padding(bottom = 30.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     )
@@ -243,7 +256,7 @@ fun HomeScreen(
                         ) {
                             Text(
                                 text = "balance".uppercase(),
-                                fontSize = 18.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Gray
                             )
@@ -251,289 +264,58 @@ fun HomeScreen(
                                 text = "R$%.2f".format(sumValues),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Gray
+                                color = if (sumValues > 0) NewGreen else if (sumValues < 0) NewRed else Gray
                             )
                         }
                     }
                 }
             }
 
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .padding(30.dp)
                     .fillMaxSize()
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                )
-                {
-                    Column(
-                        modifier = Modifier
-                            .clip(shape = RoundedCornerShape(12.dp))
-                            .clickable(
-                                onClick = {
-                                    isIncomesOpen = !isIncomesOpen
-                                }
-                            )
-                            .background(
-                                color = Green.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     )
                     {
-                        Box (
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            contentAlignment = Alignment.Center
+                        SummaryCard(
+                            title = "Incomes",
+                            amount = sumIncomes,
+                            color = NewGreen,
+                            icon = painterResource(R.drawable.rounded_arrow_shape_up_stack),
+                            iconModifier = Modifier,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onEditValueClick(ValueType.INCOME)
+                            }
                         )
-                        {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.Start
-                                ){
-                                    Text(
-                                        text = "incomes".uppercase(),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray.copy(alpha = 0.7f)
-                                    )
-                                    Text(
-                                        text = "R$%.2f".format(sumIncomes),
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray
-                                    )
-                                }
-                                Icon(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .rotate(rotationIncome),
-                                    painter = painterResource(R.drawable.rounded_arrow_drop_down),
-                                    contentDescription = "drop_down",
-                                    tint = Gray
-                                )
+                        Spacer(modifier = Modifier.padding(horizontal = 10.dp))
+                        SummaryCard(
+                            title = "Expenses",
+                            amount = sumExpenses,
+                            color = NewRed,
+                            icon = painterResource(R.drawable.rounded_arrow_shape_up_stack),
+                            iconModifier = Modifier.rotate(180f),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onEditValueClick(ValueType.EXPENSE)
                             }
-                        }
-                        AnimatedVisibility(visible = isIncomesOpen)
-                        {
-                            Column {
-                                LazyColumn(
-                                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp)
-                                )
-                                {
-//                                    items(incomeUiState.incomeValuesMonth) { income ->
-//                                        ShowValue(
-//                                            layoutDirection = LayoutDirection.Ltr,
-//                                            item = ShowValueItem(
-//                                                value = income?.incomeValue,
-//                                                name = income?.incomeDesc,
-//                                                groupId = income?.incomeGroupId
-//                                            ),
-//                                            groups = groupsUiState.groups // 👈 passa aqui
-//                                        )
-//                                    }
-                                    incomesGroupedByDate.forEach { (day, incomesOfDay) ->
-                                        stickyHeader {
-                                            Surface(
-                                                color = Color.Transparent,
-                                                tonalElevation = 4.dp,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Text(
-                                                    modifier = Modifier
-                                                        .padding(vertical = 6.dp, horizontal = 12.dp),
-                                                    text = day,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-
-                                        items(incomesOfDay) { income ->
-                                            ShowValue(
-                                                layoutDirection = LayoutDirection.Rtl,
-                                                item = ShowValueItem(
-                                                    value = income.incomeValue,
-                                                    name = income.incomeDesc,
-                                                    groupId = income.incomeGroupId
-                                                ),
-                                                groups = groupsUiState.groups
-                                            )
-                                        }
-                                    }
-                                }
-                                Button (
-                                    modifier = Modifier
-                                        .padding(5.dp)
-                                        .fillMaxWidth(),
-                                    contentPadding = PaddingValues(vertical = 1.dp, horizontal = 10.dp),
-                                    onClick = {
-                                        onEditValueClick(ValueType.INCOME)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = GreenDark.copy(alpha = 0.2f),
-                                        contentColor = Gray
-                                    ),
-                                    shape = MyContabShapes.medium
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Edit Incomes",
-                                            fontSize = 11.sp
-                                        )
-                                        Icon(
-                                            painter = painterResource(R.drawable.rounded_edit_arrow_up),
-                                            contentDescription = "edit income icon"
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        )
                     }
-                    Spacer(modifier = Modifier.padding(vertical = 6.dp))
-                    Column(
-                        modifier = Modifier
-                            .clip(shape = RoundedCornerShape(12.dp))
-                            .clickable(
-                                onClick = {
-                                    isExpensesOpen = !isExpensesOpen
-                                }
-                            )
-                            .background(
-                                color = Red.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                }
+                item {
+                    Spacer(modifier = Modifier.padding(vertical = 12.dp))
+                }
+                item {
+                    RecentActivityCard(
+                        transactions = sortedGroupedValues,
+                        groups = groupsUiState.groups,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    {
-                        Box (
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            contentAlignment = Alignment.Center
-                        )
-                        {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .rotate(rotationExpense),
-                                    painter = painterResource(R.drawable.rounded_arrow_drop_down),
-                                    contentDescription = "drop_down",
-                                    tint = Gray
-                                )
-                                Column(
-                                    horizontalAlignment = Alignment.End
-                                ) {
-                                    Text(
-                                        text = "expenses".uppercase(),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray.copy(alpha = 0.7f)
-                                    )
-                                    Text(
-                                        text = "R$%.2f".format(sumExpenses),
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray
-                                    )
-                                }
-                            }
-
-                        }
-                        AnimatedVisibility(visible = isExpensesOpen) {
-                            Column(
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                LazyColumn(
-                                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp)
-                                ) {
-//                                    items(expenseUiState.expenseValuesMonth) { expense ->
-//                                        ShowValue(
-//                                            layoutDirection = LayoutDirection.Rtl,
-//                                            item = ShowValueItem(
-//                                                value = expense?.expenseValue,
-//                                                name = expense?.expenseDesc,
-//                                                groupId = expense?.expenseGroupId
-//                                            ),
-//                                            groups = groupsUiState.groups // 👈 passa aqui
-//                                        )
-//                                    }
-
-                                    expensesGroupedByDate.forEach { (day, expensesOfDay) ->
-                                        stickyHeader {
-                                            Surface(
-                                                color = Color.Transparent,
-                                                tonalElevation = 4.dp,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Text(
-                                                    modifier = Modifier
-                                                        .padding(vertical = 6.dp, horizontal = 12.dp),
-                                                    text = day,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-
-                                        items(expensesOfDay) { expense ->
-                                            ShowValue(
-                                                layoutDirection = LayoutDirection.Ltr,
-                                                item = ShowValueItem(
-                                                    value = expense.expenseValue,
-                                                    name = expense.expenseDesc,
-                                                    groupId = expense.expenseGroupId
-                                                ),
-                                                groups = groupsUiState.groups
-                                            )
-                                        }
-                                    }
-                                }
-                                Button (
-                                    modifier = Modifier
-                                        .padding(5.dp)
-                                        .fillMaxWidth(),
-                                    contentPadding = PaddingValues(vertical = 1.dp, horizontal = 10.dp),
-                                    onClick = {
-                                        onEditValueClick(ValueType.EXPENSE)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = RedDark.copy(alpha = 0.2f),
-                                        contentColor = Gray
-                                    ),
-                                    shape = MyContabShapes.medium
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Edit Expenses",
-                                            fontSize = 11.sp
-                                        )
-                                        Icon(
-                                            painter = painterResource(R.drawable.rounded_edit_arrow_down),
-                                            contentDescription = "edit expense icon"
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -567,29 +349,9 @@ fun HomeScreen(
                     isFABOpen = !isFABOpen
                 },
                 modifier = Modifier,
-                shape = MyContabShapes.extraLarge,
+                shape = CircleShape,
                 containerColor = Principal
             ) {
-//                AnimatedVisibility(!isFABOpen) {
-//                    Icon(
-//                        painter = painterResource(R.drawable.rounded_add),
-//                        tint = Gray,
-//                        contentDescription = "",
-//                        modifier = Modifier
-//                            .size(30.dp)
-//                            .rotate(rotationFAB)
-//                    )
-//                }
-//                AnimatedVisibility(isFABOpen) {
-//                    Icon(
-//                        painter = painterResource(R.drawable.rounded_close),
-//                        tint = Gray,
-//                        contentDescription = "",
-//                        modifier = Modifier
-//                            .size(30.dp)
-//                            .rotate(rotationFAB)
-//                    )
-//                }
                 Icon(
                     painter = painterResource(R.drawable.rounded_add),
                     tint = Gray,
@@ -628,24 +390,27 @@ private fun FloatingActionMenus(
             onIncomeClick()
         },
         modifier = Modifier.scale(actionMenuScale),
+        elevation = ButtonDefaults.buttonElevation(4.dp),
         enabled = true,
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(top = 5.dp, bottom = 5.dp, end = 5.dp, start = 10.dp),
+        shape = CircleShape,
+        contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Green.copy(0.8f)
+            containerColor = Green
         )
     ) {
         Text(
             text = "New Income",
-            modifier = Modifier,
-            color = Gray.copy(alpha = 0.9f),
+            modifier = Modifier.padding(start = 4.dp),
+            color = Gray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
             textAlign = TextAlign.Center
         )
         Icon(
-            modifier = Modifier,
+            modifier = Modifier
+                .clip(CircleShape)
+                .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
             tint = Gray.copy(alpha = 0.9f),
             contentDescription = "income"
@@ -659,16 +424,17 @@ private fun FloatingActionMenus(
             onExpenseClick()
         },
         modifier = Modifier.scale(actionMenuScale),
+        elevation = ButtonDefaults.buttonElevation(4.dp),
         enabled = true,
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(top = 5.dp, bottom = 5.dp, end = 5.dp, start = 10.dp),
+        shape = CircleShape,
+        contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Red.copy(0.8f)
+            containerColor = Red
         )
     ) {
         Text(
             text = "New Expense",
-            modifier = Modifier,
+            modifier = Modifier.padding(start = 4.dp),
             color = Gray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
@@ -676,10 +442,174 @@ private fun FloatingActionMenus(
             textAlign = TextAlign.Center
         )
         Icon(
-            modifier = Modifier.rotate(180f),
+            modifier = Modifier
+                .rotate(180f)
+                .clip(CircleShape)
+                .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
             tint = Gray,
             contentDescription = "expense"
+        )
+    }
+}
+
+@Composable
+fun SummaryCard(
+    title: String,
+    amount: Double,
+    color: Color,
+    icon: Painter,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    iconModifier: Modifier
+) {
+    Card(
+        modifier = modifier
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = NewLight
+        )
+    ) {
+        Column(
+            Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                icon,
+                contentDescription = title,
+                tint = color,
+                modifier = iconModifier
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Light
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "R$${"%.2f".format(amount)}",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+fun RecentActivityCard(
+    transactions: Map<Int, List<ShowValueItem>>,
+    groups: List<GroupsEntity?>,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = NewLight
+        )
+    ) {
+        Column(Modifier.padding(vertical = 8.dp)) { // Padding vertical menor para a lista
+            Text(
+                text = "Month Transactions",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Gray,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            Spacer(
+                modifier = Modifier
+                    .height(1.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 5.dp)
+                    .background(color = Gray.copy(0.2f))
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .padding(top = 5.dp, end = 5.dp)
+                    .fillMaxWidth()
+                    .height(180.dp)
+            ) {
+                transactions.forEach { (day, transactions) ->
+//                    TransactionItem(transaction, groups = groups)
+                    stickyHeader {
+                        Surface(
+                            color = Color.Transparent,
+                            tonalElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .padding(vertical = 6.dp, horizontal = 12.dp),
+                                text = "%02d".format(day),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    items(
+                        items = transactions
+                    ) { transaction ->
+                        TransactionItem(
+                            item = transaction,
+                            groups = groups
+                        )
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+@Composable
+fun TransactionItem(
+    item: ShowValueItem?,
+    groups: List<GroupsEntity?>
+) {
+    val group = remember(item?.groupId, groups) {
+        groups.find { it!!.id == item?.groupId }
+    }
+    val color = if (item?.isExpense == true) RedMedium else GreenMedium
+
+    item?.let {
+        ListItem(
+            modifier = Modifier.height(40.dp),
+            leadingContent = {
+                group?.let {
+                    Icon(
+                        painter = painterResource(it.groupIcon),
+                        contentDescription = it.groupName,
+                        modifier = Modifier,
+                        tint = color
+                    )
+                }
+            },
+            headlineContent = {
+                Text(
+                    text = item.name,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 12.sp,
+                    color = color,
+                    fontSize = 12.sp
+                )
+            },
+            trailingContent = {
+                Text(
+                    text = "R$ ${"%.2f".format(item.value)}",
+                    color = color,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    letterSpacing = 0.sp
+                )
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent, // Fundo transparente no card
+                headlineColor = Gray
+            )
         )
     }
 }
