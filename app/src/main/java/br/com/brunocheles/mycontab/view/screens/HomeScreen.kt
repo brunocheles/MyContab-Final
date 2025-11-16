@@ -30,8 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,16 +55,15 @@ import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
 import br.com.brunocheles.mycontab.ui.theme.Gray
 import br.com.brunocheles.mycontab.ui.theme.Green
-import br.com.brunocheles.mycontab.ui.theme.GreenMedium
 import br.com.brunocheles.mycontab.ui.theme.LessLight
 import br.com.brunocheles.mycontab.ui.theme.NewGreen
 import br.com.brunocheles.mycontab.ui.theme.NewLight
 import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.Red
-import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.animations.AnimationController
 import br.com.brunocheles.mycontab.view.components.MonthPickerDialog
+import br.com.brunocheles.mycontab.view.components.TransactionItem
 import br.com.brunocheles.mycontab.view.components.ValueType
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
 import br.com.brunocheles.mycontab.view.states.AuthUiState
@@ -123,8 +120,12 @@ fun HomeScreen(
             value = income.incomeValue,
             name = income.incomeDesc,
             day = income.incomeDay,
+            month = income.incomeMonth,
+            year = income.incomeYear,
             groupId = income.incomeGroupId,
-            isExpense = false
+            isExpense = false,
+            id = income.incomeId,
+            groupIcon = income.incomeGroupIcon
         )
     }
 
@@ -134,14 +135,18 @@ fun HomeScreen(
             value = expense.expenseValue,
             name = expense.expenseDesc,
             day = expense.expenseDay,
+            month = expense.expenseMonth,
+            year = expense.expenseYear,
             groupId = expense.expenseGroupId,
-            isExpense = true
+            isExpense = true,
+            id = expense.expenseId,
+            groupIcon = expense.expenseGroupIcon
         )
     }
 
     val allMonthValues = (incomesMapped + expensesMapped)
 
-    val groupedByDate: Map<Int, List<ShowValueItem>> = allMonthValues.groupBy { item ->
+    val groupedByDate: Map<Int?, List<ShowValueItem>> = allMonthValues.groupBy { item ->
         item.day
     }
 
@@ -555,62 +560,15 @@ fun RecentActivityCard(
                     ) { transaction ->
                         TransactionItem(
                             item = transaction,
-                            groups = groups
+                            groups = groups,
+                            isEdit = false,
+                            onDelete = {}
                         )
                     }
                 }
 
             }
         }
-    }
-}
-
-@Composable
-fun TransactionItem(
-    item: ShowValueItem?,
-    groups: List<GroupsEntity?>
-) {
-    val group = remember(item?.groupId, groups) {
-        groups.find { it!!.id == item?.groupId }
-    }
-    val color = if (item?.isExpense == true) RedMedium else GreenMedium
-
-    item?.let {
-        ListItem(
-            modifier = Modifier.height(40.dp),
-            leadingContent = {
-                group?.let {
-                    Icon(
-                        painter = painterResource(it.groupIcon),
-                        contentDescription = it.groupName,
-                        modifier = Modifier,
-                        tint = color
-                    )
-                }
-            },
-            headlineContent = {
-                Text(
-                    text = item.name,
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 12.sp,
-                    color = color,
-                    fontSize = 12.sp
-                )
-            },
-            trailingContent = {
-                Text(
-                    text = "R$ ${"%.2f".format(item.value)}",
-                    color = color,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    letterSpacing = 0.sp
-                )
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent, // Fundo transparente no card
-                headlineColor = Gray
-            )
-        )
     }
 }
 

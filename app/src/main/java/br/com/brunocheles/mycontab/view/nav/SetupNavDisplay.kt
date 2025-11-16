@@ -13,9 +13,13 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import br.com.brunocheles.mycontab.view.items.toExpense
+import br.com.brunocheles.mycontab.view.items.toIncome
+import br.com.brunocheles.mycontab.view.screens.EditValueScreen
 import br.com.brunocheles.mycontab.view.screens.LoadingMinScreen
 import br.com.brunocheles.mycontab.view.screens.LoadingScreen
 import br.com.brunocheles.mycontab.view.screens.LoginScreen
+import br.com.brunocheles.mycontab.view.screens.NewValueScreen
 import br.com.brunocheles.mycontab.view.screens.RegisterScreen
 import br.com.brunocheles.mycontab.view.screens.SplashScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthUiEvent
@@ -33,7 +37,10 @@ fun SetupNavDisplay(
     expenseViewModel: ExpenseViewModel = hiltViewModel()
 ) {
     val authUiState by authViewModel.uiState.collectAsState()
+    val groupUiState by groupViewModel.uiState.collectAsState()
     val isAuthChecked by authViewModel.isAuthChecked.collectAsState()
+    val incomeUiState by incomeViewModel.uiState.collectAsState()
+    val expenseUiState by expenseViewModel.uiState.collectAsState()
     val backStack = rememberNavBackStack(Screen.Splash)
 
     val context = LocalContext.current
@@ -135,11 +142,89 @@ fun SetupNavDisplay(
                     }
                 )
             }
-            entry<Screen.NewValue> {
-
+            entry<Screen.NewValue> { it ->
+                NewValueScreen(
+                    type = it.type,
+                    onClose = {
+                        backStack.clear()
+                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
+                    },
+                    authUiState = authUiState,
+                    groupsUiState = groupUiState,
+                    onInsertIncome = { income ->
+                        authUiState.userLogged?.userId?.let {
+                            incomeViewModel.insertIncome(
+                                userId = it,
+                                income = income
+                            )
+                        }
+                        backStack.clear()
+                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
+                    },
+                    onInsertExpense = { expense ->
+                        authUiState.userLogged?.userId?.let {
+                            expenseViewModel.insertExpense(
+                                userId = it,
+                                expense = expense
+                            )
+                        }
+                        backStack.clear()
+                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
+                    }
+                )
             }
             entry<Screen.EditValue> {
-//                val type = it.type
+                EditValueScreen(
+                    incomeUiState = incomeUiState,
+                    expenseUiState = expenseUiState,
+                    groups = groupUiState.groups,
+                    onEdit = { value ->
+                        when (value.isExpense) {
+                            true -> {
+                                authUiState.userLogged?.userId?.let {
+                                    expenseViewModel.updateExpense(
+                                        userId = it,
+                                        expense = value.toExpense()
+                                    )
+                                }
+                            }
+
+                            false -> {
+                                authUiState.userLogged?.userId?.let {
+                                    incomeViewModel.updateIncome(
+                                        userId = it,
+                                        income = value.toIncome()
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    onBackPressed = {
+                        backStack.clear()
+                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
+                    },
+                    onDelete = { value ->
+                        when(value.isExpense) {
+                            true -> {
+                                authUiState.userLogged?.userId?.let {
+                                    expenseViewModel.deleteExpense(
+                                        userId = it,
+                                        expense = value.toExpense()
+                                    )
+                                }
+                            }
+                            false -> {
+                                authUiState.userLogged?.userId?.let {
+                                    incomeViewModel.deleteIncome(
+                                        userId = it,
+                                        income = value.toIncome()
+                                    )
+                                }
+                            }
+                        }
+
+                    }
+                )
             }
             entry<Screen.LoadingMin> {
                 LoadingMinScreen(
