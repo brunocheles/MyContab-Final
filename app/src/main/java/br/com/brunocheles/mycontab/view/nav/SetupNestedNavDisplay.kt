@@ -24,15 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import br.com.brunocheles.mycontab.ui.theme.Light
-import br.com.brunocheles.mycontab.ui.theme.Principal
-import br.com.brunocheles.mycontab.ui.theme.Typography
+import br.com.brunocheles.mycontab.ui.theme.*
 import br.com.brunocheles.mycontab.view.screens.HomeScreen
 import br.com.brunocheles.mycontab.view.screens.ProfileScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
@@ -71,10 +71,10 @@ fun SetupNestedNavDisplay(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Light,
+        containerColor = LessLight,
         bottomBar = {
             NavigationBar(
-                containerColor = Light
+                containerColor = LessWhite
             ) {
                 screensBottomBar.forEach { destination ->
                     NavigationBarItem(
@@ -87,7 +87,11 @@ fun SetupNestedNavDisplay(
                             )
                         },
                         label = {
-                            Text(text = destination.title)
+                            Text(
+                                text = destination.title,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                                )
                         },
                         onClick = {
                             if (backStack.lastOrNull() != destination) {
@@ -99,10 +103,10 @@ fun SetupNestedNavDisplay(
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
+                            selectedIconColor = LessLight,
                             selectedTextColor = Principal,
-                            unselectedIconColor = Color.LightGray,
-                            unselectedTextColor = Color.LightGray,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
                             indicatorColor = Principal
                         )
                     )
@@ -128,7 +132,9 @@ fun SetupNestedNavDisplay(
                         onNewValueClick = { type ->
                             onNavigateToFullscreen(Screen.NewValue(type))
                         },
-                        onEditValueClick = {},
+                        onEditValueClick = { index ->
+                            onNavigateToFullscreen(Screen.EditValue(index))
+                        },
                         onConfirmMonthYear = { year, month ->
                             authViewModel.updateDate(year, month)
 
@@ -198,8 +204,8 @@ fun SetupNestedNavDisplay(
 
 private val screensBottomBar = listOf(
     BottomBarScreen.Home,
-    BottomBarScreen.Plans,
-    BottomBarScreen.Contab,
     BottomBarScreen.Stats,
+    BottomBarScreen.Contab,
+    BottomBarScreen.Plans,
     BottomBarScreen.Profile
 )

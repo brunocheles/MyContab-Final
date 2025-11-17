@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
@@ -118,11 +118,11 @@ fun RegisterScreen(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 
@@ -150,11 +150,11 @@ fun RegisterScreen(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 
@@ -192,11 +192,11 @@ fun RegisterScreen(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 
@@ -241,11 +241,11 @@ fun RegisterScreen(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 

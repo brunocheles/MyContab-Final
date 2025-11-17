@@ -11,7 +11,7 @@ data class ShowValueItem(
     val month: Int?,
     val year: Int?,
     val groupId: Int?,
-    val groupIcon: Int?,
+    val groupIcon: String?,
     val isExpense: Boolean
 )
 

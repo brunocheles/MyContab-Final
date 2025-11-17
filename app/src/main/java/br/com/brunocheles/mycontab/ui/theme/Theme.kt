@@ -1,6 +1,5 @@
 package br.com.brunocheles.mycontab.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -14,14 +13,14 @@ import androidx.compose.ui.platform.LocalContext
 private val DarkColorScheme = darkColorScheme(
     primary = PrincipalLight,
     secondary = Principal,
-    tertiary = Gray,
+    tertiary = NewGray,
     background = Dark
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Principal,
     secondary = PrincipalLight,
-    tertiary = Gray,
+    tertiary = NewGray,
     background = Light
 //    surface = Color(0xFFFFFBFE),
 //    onPrimary = Color.White,

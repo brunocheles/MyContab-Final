@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.items.User
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 
 @Composable
 fun UserSettingsContent(
@@ -35,7 +35,7 @@ fun UserSettingsContent(
         Box(
             modifier = Modifier
                 .size(120.dp)
-                .border(width = 2.dp, color = Gray, shape = CircleShape)
+                .border(width = 2.dp, color = NewGray, shape = CircleShape)
                 .background(Color.Transparent, CircleShape)
         )
 

@@ -20,16 +20,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
-import br.com.brunocheles.mycontab.ui.theme.Light
+import br.com.brunocheles.mycontab.ui.theme.NewGray
+import br.com.brunocheles.mycontab.ui.theme.LessBlack
+import br.com.brunocheles.mycontab.ui.theme.LessLight
+import br.com.brunocheles.mycontab.ui.theme.LessWhite
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
+import br.com.brunocheles.mycontab.ui.theme.NewLight
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
 import java.time.Instant
@@ -38,120 +41,134 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun DatePickerModal(
-    initialDate: LocalDate? = null,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
-            ?.toEpochMilli()
-    )
-
-    DatePickerDialog(
-        onDismissRequest = { onDismiss() },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val localDate = Instant.ofEpochMilli(it)
-                            .atZone(ZoneOffset.UTC)
-                            .toLocalDate()
-                        onDateSelected(localDate)
-                    }
-                    onDismiss()
-                }
-            ) {
-                Text(
-                    text = "Confirm",
-                    color = Color.White
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Cancel",
-                    color = Color.White
-                )
-            }
-        },
-        colors = DatePickerDefaults.colors(
-            containerColor = Principal
-        )
+    fun DatePickerModal(
+        initialDate: LocalDate? = null,
+        onDateSelected: (LocalDate) -> Unit,
+        onDismiss: () -> Unit
     ) {
-        DatePicker(
-            state = datePickerState,
-            colors = DatePickerDefaults.colors(
-                containerColor = Light,
-                currentYearContentColor = Principal,
-                selectedDayContainerColor = Principal,
-                todayContentColor = PrincipalLight,
-                todayDateBorderColor = PrincipalLight,
-                selectedDayContentColor = Color.White,
-                selectedYearContainerColor = Principal,
-                selectedYearContentColor = Color.White,
-
-                )
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initialDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
+                ?.toEpochMilli()
         )
-    }
-}
 
-@Composable
-fun DatePickerFieldToModal(
-    selectedDate: LocalDate? = null,
-    onDateSelected: (LocalDate) -> Unit = {}
-) {
-    var selectedDate by remember { mutableStateOf(selectedDate) }
-    var showModal by remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = selectedDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
-        onValueChange = { },
-        label = { Text("Date") },
-        placeholder = { Text("DD/MM/YYYY") },
-        trailingIcon = {
-            Icon(
-                painter = painterResource(R.drawable.rounded_date_range),
-                contentDescription = "Select date",
-                tint = Gray
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 5.dp)
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(pass = PointerEventPass.Initial)
-                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-                    if (upEvent != null) showModal = true
+        DatePickerDialog(
+            onDismissRequest = { onDismiss() },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            val localDate = Instant.ofEpochMilli(it)
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalDate()
+                            onDateSelected(localDate)
+                        }
+                        onDismiss()
+                    }
+                ) {
+                    Text(
+                        text = "Confirm",
+                        color = LessWhite
+                    )
                 }
             },
-        shape = MyContabShapes.extraLarge,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Principal,
-            focusedLabelColor = Principal,
-            unfocusedLabelColor = Gray,
-            unfocusedBorderColor = PrincipalLight,
-            unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-            focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-            unfocusedTextColor = Gray.copy(alpha = 0.7f),
-            focusedTextColor = Gray
-        ),
-    )
-
-    if (showModal) {
-        DatePickerModal(
-            initialDate = selectedDate,
-            onDateSelected = { date ->
-                selectedDate = date
-                onDateSelected(date)
-                showModal = false
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "Cancel",
+                        color = LessWhite
+                    )
+                }
             },
-            onDismiss = { showModal = false }
-        )
+            colors = DatePickerDefaults.colors(
+                containerColor = Principal
+            ),
+            properties = DialogProperties(
+                usePlatformDefaultWidth = true
+            )
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    containerColor = NewLight,
+                    currentYearContentColor = Principal,
+                    selectedDayContainerColor = Principal,
+                    todayContentColor = PrincipalLight,
+                    todayDateBorderColor = PrincipalLight,
+                    selectedDayContentColor = LessLight,
+                    selectedYearContainerColor = Principal,
+                    selectedYearContentColor = LessLight,
+                    dayInSelectionRangeContentColor = LessBlack,
+                    headlineContentColor = LessBlack,
+                    subheadContentColor = NewGray,
+                    dayContentColor = LessBlack,
+                    yearContentColor = LessBlack,
+                    navigationContentColor = LessBlack
+                    )
+            )
+        }
     }
-}
+
+    @Composable
+    fun DatePickerFieldToModal(
+        selectedDate: LocalDate? = null,
+        onDateSelected: (LocalDate) -> Unit = {}
+    ) {
+        var selectedDate by remember { mutableStateOf(selectedDate) }
+        var showModal by remember { mutableStateOf(false) }
+
+        OutlinedTextField(
+            value = selectedDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
+            onValueChange = { },
+            label = { Text("Date") },
+            placeholder = { Text("DD/MM/YYYY") },
+            trailingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.rounded_date_range),
+                    contentDescription = "Select date",
+                    tint = NewGray
+                )
+            },
+            readOnly = true, // Torna o campo não editável
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 5.dp)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(pass = PointerEventPass.Initial)
+                        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                        if (upEvent != null) showModal = true
+                    }
+                }, // Abre o modal ao clicar
+            // --- FIM DA MELHORIA ---,
+            shape = MyContabShapes.extraLarge,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Principal,
+                focusedLabelColor = Principal,
+                unfocusedLabelColor = NewGray,
+                unfocusedBorderColor = PrincipalLight,
+                unfocusedContainerColor = PrincipalLight.copy(
+                    alpha = 0.1f
+                ),
+                focusedContainerColor = PrincipalLight.copy(
+                    alpha = 0.1f
+                ),
+                unfocusedTextColor = NewGray,
+                focusedTextColor = LessBlack
+            ),
+        )
+
+        if (showModal) {
+            DatePickerModal(
+                initialDate = selectedDate,
+                onDateSelected = { date ->
+                    selectedDate = date
+                    onDateSelected(date)
+                    showModal = false
+                },
+                onDismiss = { showModal = false }
+            )
+        }
+    }
 
 @Preview
 @Composable

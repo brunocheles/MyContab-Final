@@ -11,10 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
-import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 
 @Composable
 fun SettingsOption(
@@ -29,7 +27,7 @@ fun SettingsOption(
         shape = RectangleShape,
         startIcon = icon,
         colors = ButtonDefaults.buttonColors(
-            contentColor = Gray,
+            contentColor = NewGray,
             containerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent
         ),
@@ -46,7 +44,7 @@ fun DividerLine() {
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .background(
-                color = Gray.copy(alpha = 0.5f),
+                color = NewGray.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(10.dp)
             )
     )

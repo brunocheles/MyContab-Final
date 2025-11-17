@@ -37,7 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
@@ -148,7 +148,7 @@ fun MonthPickerDialog(
                                 ) {
                                     Text(
                                         text = month,
-                                        color = if (index == selectedMonth) Color.White else Gray,
+                                        color = if (index == selectedMonth) Color.White else NewGray,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }

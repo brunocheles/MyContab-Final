@@ -5,7 +5,7 @@ data class Expense(
     val expenseValue: Double,
     val expenseDesc: String,
     val expenseGroupId: Int,
-    val expenseGroupIcon: Int,
+    val expenseGroupIcon: String,
     val expenseMonth: Int,
     val expenseYear: Int,
     val expenseDay: Int

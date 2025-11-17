@@ -19,7 +19,7 @@ sealed class Screen: NavKey {
     @Serializable
     data class NewValue(val type: ValueType) : Screen()
     @Serializable
-    data object EditValue : Screen()
+    data class EditValue(val index: Int) : Screen()
     @Serializable
     data object NestedGraph: Screen()
 }

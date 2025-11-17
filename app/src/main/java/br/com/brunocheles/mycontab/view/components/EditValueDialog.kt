@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
@@ -82,6 +82,14 @@ fun EditValueDialog(
     }
     valueDesc = valueItem.name.toString()
 
+    var selectedDate by rememberSaveable {
+        mutableStateOf(LocalDate.of(
+            selectedYear,
+            selectedMonth,
+            selectedDay)
+        )
+    }
+
     val actualValue = String.format(Locale.US, "%.2f", valueItem.value)
 
     newValue = actualValue.replace(".", "")
@@ -89,11 +97,12 @@ fun EditValueDialog(
     val groupOptions = groups
         .filterNotNull()
         .map { group ->
+            val iconResId = IconUtils.getIconIdByName(group.groupName)
             IconOption(
-                painter = painterResource(group.groupIcon),
+                painter = painterResource(iconResId),
                 description = group.groupName,
                 groupId = group.id,
-                groupIcon = group.groupIcon
+                groupIcon = group.groupName
             )
         }
 
@@ -140,7 +149,7 @@ fun EditValueDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Principal,
                             focusedLabelColor = Principal,
-                            unfocusedLabelColor = Gray,
+                            unfocusedLabelColor = NewGray,
                             unfocusedBorderColor = PrincipalLight,
                             unfocusedContainerColor = PrincipalLight.copy(
                                 alpha = 0.1f
@@ -148,8 +157,8 @@ fun EditValueDialog(
                             focusedContainerColor = PrincipalLight.copy(
                                 alpha = 0.1f
                             ),
-                            unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                            focusedTextColor = Gray
+                            unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                            focusedTextColor = NewGray
                         )
                     )
                     Column(
@@ -170,7 +179,7 @@ fun EditValueDialog(
                                 .padding(top = 2.dp),
                             text = "Group",
                             textAlign = TextAlign.Center,
-                            color = Gray,
+                            color = NewGray,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.W400
                         )
@@ -238,7 +247,7 @@ fun EditValueDialog(
                         Icon(
                             painter = painterResource(R.drawable.rounded_attach_money),
                             contentDescription = "money icon",
-                            tint = Gray
+                            tint = NewGray
                         )
                     },
                     shape = MyContabShapes.extraLarge,
@@ -246,12 +255,12 @@ fun EditValueDialog(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Principal,
                         focusedLabelColor = Principal,
-                        unfocusedLabelColor = Gray,
+                        unfocusedLabelColor = NewGray,
                         unfocusedBorderColor = PrincipalLight,
                         unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                         focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                        unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                        focusedTextColor = Gray
+                        unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                        focusedTextColor = NewGray
                     ),
                     isError = !hasValue,
                     visualTransformation = CurrencyAmountInputVisualTransformation(),
@@ -261,7 +270,9 @@ fun EditValueDialog(
                     )
                 )
 
-                DatePickerFieldToModal()
+                DatePickerFieldToModal(
+                    selectedDate = selectedDate
+                )
 
                 Row(
                     modifier = Modifier
@@ -348,7 +359,7 @@ fun EditValueDialogPreview() {
             value = 132.55,
             name = "Teste",
             groupId = 1,
-            groupIcon = 1,
+            groupIcon = "teste",
             month = 10,
             year = 2025,
             day = 15,

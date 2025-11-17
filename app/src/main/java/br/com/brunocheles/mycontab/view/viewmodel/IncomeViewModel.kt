@@ -38,8 +38,15 @@ class IncomeViewModel @Inject constructor(
     val uiEvent = _uiEvent.asSharedFlow()
 
     private var activeLoadingJobs = 0
+    private var currentUserId: String? = null
+    private var currentMonth: Int? = null
+    private var currentYear: Int? = null
 
     fun getAllIncomesMonth(userId:String, month: Int, year: Int) {
+
+        currentUserId = userId
+        currentMonth = month + 1
+        currentYear = year
 
         activeLoadingJobs++
         _uiState.update { it.copy(isLoading = true) }
@@ -47,7 +54,7 @@ class IncomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
 
-                val result = incomeRepository.getAllMonthIncomes(userId, month, year)
+                val result = incomeRepository.getAllMonthIncomes(currentUserId!!, currentMonth!!, currentYear!!)
 
                 result.onSuccess { incomesList ->
                     _uiState.update {
@@ -68,14 +75,27 @@ class IncomeViewModel @Inject constructor(
         }
     }
 
+    private fun refreshData() {
+        if (currentUserId != null && currentMonth != null && currentYear != null) {
+            getAllIncomesMonth(currentUserId!!, currentMonth!!, currentYear!!)
+        }
+        // Se tiver o método de carregar o ano também, chame aqui:
+        if (currentUserId != null && currentYear != null) {
+            getAllIncomesYear(currentUserId!!, currentYear!!)
+        }
+    }
+
     fun getAllIncomesYear(userId: String,year: Int) {
+
+        currentUserId = userId
+        currentYear = year
 
         activeLoadingJobs++
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             try {
-                val result = incomeRepository.getAllYearIncomes(userId, year)
+                val result = incomeRepository.getAllYearIncomes(currentUserId!!, currentYear!!)
 
                 result.onSuccess { incomesList ->
                     _uiState.update {
@@ -104,6 +124,7 @@ class IncomeViewModel @Inject constructor(
 
             result.onSuccess {
                 _uiEvent.emit(IncomeUiEvent.OnSuccess)
+                refreshData()
             }.onFailure { error ->
                 val errorMessage = error.message ?: "Erro desconhecido ao salvar."
                 _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
@@ -115,6 +136,16 @@ class IncomeViewModel @Inject constructor(
     fun updateIncome(userId:String, income: Income) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            val currentList = _uiState.value.incomeValuesMonth.toMutableList()
+
+            val index = currentList.indexOfFirst { it?.incomeId == income.incomeId }
+
+            if (index != -1) {
+                currentList[index] = income
+
+                _uiState.update { it.copy(incomeValuesMonth = currentList) }
+            }
 
             val result = incomeRepository.updateIncome(userId, income)
 
@@ -131,6 +162,14 @@ class IncomeViewModel @Inject constructor(
     fun deleteIncome(userId:String, income: Income) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            val currentList = _uiState.value.incomeValuesMonth.toMutableList()
+
+            val removed = currentList.removeIf { it?.incomeId == income.incomeId }
+
+            if (removed) {
+                _uiState.update { it.copy(incomeValuesMonth = currentList) }
+            }
 
             val result = incomeRepository.deleteIncome(userId, income)
 

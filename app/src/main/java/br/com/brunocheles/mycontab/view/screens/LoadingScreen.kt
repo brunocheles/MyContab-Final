@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -80,7 +80,7 @@ fun LoadingScreen(
                 Text(
                     text = message,
                     style = TextStyle(
-                        color = Gray,
+                        color = NewGray,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium
                     )

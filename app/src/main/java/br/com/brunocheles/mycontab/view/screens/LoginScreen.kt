@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.LightBlue
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
@@ -131,7 +131,7 @@ fun LoginScreen(
                 label = { Text("Email") },
                 leadingIcon = {
                     Icon(
-                        tint = Gray,
+                        tint = NewGray,
                         painter = painterResource(R.drawable.rounded_alternate_email),
                         contentDescription = "email icon"
                     )
@@ -144,12 +144,12 @@ fun LoginScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Principal,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedBorderColor = PrincipalLight,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 
@@ -163,7 +163,7 @@ fun LoginScreen(
                 label = { Text("Password") },
                 leadingIcon = {
                     Icon(
-                        tint = Gray,
+                        tint = NewGray,
                         painter = painterResource(R.drawable.rounded_lock),
                         contentDescription = "lock icon"
                     )
@@ -173,7 +173,7 @@ fun LoginScreen(
                         if (isPasswordVisible) R.drawable.rounded_visibility_off else R.drawable.rounded_visibility
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
-                            tint = Gray,
+                            tint = NewGray,
                             painter = painterResource(icon),
                             contentDescription = "toggle password visibility"
                         )
@@ -196,11 +196,11 @@ fun LoginScreen(
                     focusedBorderColor = Principal,
                     unfocusedBorderColor = PrincipalLight,
                     focusedLabelColor = Principal,
-                    unfocusedLabelColor = Gray,
+                    unfocusedLabelColor = NewGray,
                     unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
                     focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
-                    unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                    focusedTextColor = Gray
+                    unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                    focusedTextColor = NewGray
                 )
             )
 

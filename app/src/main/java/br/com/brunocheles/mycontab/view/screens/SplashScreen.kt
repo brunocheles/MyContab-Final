@@ -28,7 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.model.items.User
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import kotlinx.coroutines.delay
@@ -86,7 +86,7 @@ fun SplashScreen(
         ) {
             Text(
                 text = "MyContab",
-                color = Gray,
+                color = NewGray,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -101,7 +101,7 @@ fun SplashScreen(
 
             Text(
                 text = "Simplifying your finances",
-                color = Gray.copy(alpha = 0.7f),
+                color = NewGray.copy(alpha = 0.7f),
                 fontSize = 16.sp,
                 modifier = Modifier.alpha(alphaAnim.value)
             )

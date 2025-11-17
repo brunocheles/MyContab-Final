@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
 
@@ -29,7 +29,7 @@ fun Logo() {
         Icon(
             modifier = Modifier.fillMaxSize(),
             painter = painterResource(R.drawable.mycontab_logo),
-            tint = Gray,
+            tint = NewGray,
             contentDescription = null
         )
     }
@@ -38,6 +38,6 @@ fun Logo() {
         text = "MyContab",
         fontSize = 20.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Gray
+        color = NewGray
     )
 }

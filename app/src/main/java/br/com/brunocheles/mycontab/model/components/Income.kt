@@ -5,7 +5,7 @@ data class Income(
     val incomeValue: Double,
     val incomeDesc: String,
     val incomeGroupId: Int,
-    val incomeGroupIcon: Int,
+    val incomeGroupIcon: String,
     val incomeMonth: Int,
     val incomeYear: Int,
     val incomeDay: Int

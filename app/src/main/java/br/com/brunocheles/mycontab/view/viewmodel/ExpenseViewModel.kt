@@ -37,8 +37,16 @@ class ExpenseViewModel @Inject constructor(
     val uiEvent = _uiEvent.asSharedFlow()
 
     private var activeLoadingJobs = 0
+    private var currentUserId: String? = null
+    private var currentMonth: Int? = null
+    private var currentYear: Int? = null
+
 
     fun getAllExpensesMonth(userId:String, month: Int, year: Int) {
+
+        currentUserId = userId
+        currentMonth = month + 1
+        currentYear = year
 
         activeLoadingJobs++
         _uiState.update { it.copy(isLoading = true) }
@@ -46,7 +54,7 @@ class ExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             try {
 
-                val result = expenseRepository.getAllMonthExpenses(userId, month, year)
+                val result = expenseRepository.getAllMonthExpenses(currentUserId!!, currentMonth!!, currentYear!!)
 
                 result.onSuccess { expensesList ->
                     _uiState.update {
@@ -67,14 +75,27 @@ class ExpenseViewModel @Inject constructor(
         }
     }
 
+    private fun refreshData() {
+        if (currentUserId != null && currentMonth != null && currentYear != null) {
+            getAllExpensesMonth(currentUserId!!, currentMonth!!, currentYear!!)
+        }
+        // Se tiver o método de carregar o ano também, chame aqui:
+        if (currentUserId != null && currentYear != null) {
+            getAllExpensesYear(currentUserId!!, currentYear!!)
+        }
+    }
+
     fun getAllExpensesYear(userId: String,year: Int) {
+
+        currentUserId = userId
+        currentYear = year
 
         activeLoadingJobs++
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             try {
-                val result = expenseRepository.getAllYearExpenses(userId, year)
+                val result = expenseRepository.getAllYearExpenses(currentUserId!!, currentYear!!)
 
                 result.onSuccess { expensesList ->
                     _uiState.update {
@@ -103,6 +124,7 @@ class ExpenseViewModel @Inject constructor(
 
             result.onSuccess {
                 _uiEvent.emit(ExpenseUiEvent.OnSuccess)
+                refreshData()
             }.onFailure { error ->
                 val errorMessage = error.message ?: "Erro desconhecido ao salvar."
                 _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
@@ -114,6 +136,16 @@ class ExpenseViewModel @Inject constructor(
     fun updateExpense(userId:String, expense: Expense) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            val currentList = _uiState.value.expenseValuesMonth.toMutableList()
+
+            val index = currentList.indexOfFirst { it?.expenseId == expense.expenseId }
+
+            if (index != -1) {
+                currentList[index] = expense
+
+                _uiState.update { it.copy(expenseValuesMonth = currentList) }
+            }
 
             val result = expenseRepository.updateExpense(userId, expense)
 
@@ -131,10 +163,19 @@ class ExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
+            val currentList = _uiState.value.expenseValuesMonth.toMutableList()
+
+            val removed = currentList.removeIf { it?.expenseId == expense.expenseId }
+
+            if (removed) {
+                _uiState.update { it.copy(expenseValuesMonth = currentList) }
+            }
+
             val result = expenseRepository.deleteExpense(userId, expense)
 
             result.onSuccess {
                 _uiEvent.emit(ExpenseUiEvent.OnSuccess)
+                refreshData()
             }.onFailure { error ->
                 val errorMessage = error.message ?: "Erro desconhecido ao salvar."
                 _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))

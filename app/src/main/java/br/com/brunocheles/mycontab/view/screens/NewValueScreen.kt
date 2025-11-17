@@ -49,9 +49,10 @@ import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.components.Expense
 import br.com.brunocheles.mycontab.model.components.Income
 import br.com.brunocheles.mycontab.model.items.User
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.GreenDark
 import br.com.brunocheles.mycontab.ui.theme.GreenMedium
+import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
 import br.com.brunocheles.mycontab.ui.theme.Principal
@@ -59,6 +60,7 @@ import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
 import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.components.CurrencyAmountInputVisualTransformation
 import br.com.brunocheles.mycontab.view.components.DatePickerFieldToModal
+import br.com.brunocheles.mycontab.view.components.IconUtils
 import br.com.brunocheles.mycontab.view.components.ValueType
 import br.com.brunocheles.mycontab.view.states.AuthUiState
 import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
@@ -76,7 +78,7 @@ fun NewValueScreen(
     var selectedDate by rememberSaveable {
         mutableStateOf(LocalDate.of(
             authUiState.year,
-            authUiState.month,
+            authUiState.month + 1,
             LocalDate.now().dayOfMonth)
         )
     }
@@ -92,11 +94,12 @@ fun NewValueScreen(
     val groupOptions = groupsUiState.groups
         .filterNotNull()
         .map { group ->
+            val iconResId = IconUtils.getIconIdByName(group.groupName)
             IconOption(
-                painter = painterResource(group.groupIcon),
+                painter = painterResource(iconResId),
                 description = group.groupName,
                 groupId = group.id,
-                groupIcon = group.groupIcon
+                groupIcon = group.groupName
             )
         }
 
@@ -143,7 +146,7 @@ fun NewValueScreen(
                         text = "New ${type.name}".uppercase(),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Gray
+                        color = NewGray
                     )
                     Box(
                         modifier = Modifier
@@ -160,7 +163,7 @@ fun NewValueScreen(
                                 modifier = Modifier.size(40.dp),
                                 painter = painterResource(R.drawable.rounded_close),
                                 contentDescription = "close",
-                                tint = Gray
+                                tint = NewGray
                             )
                         }
                     }
@@ -169,7 +172,7 @@ fun NewValueScreen(
 
                 // ====== VALUE FIELD ======
                 Row(
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .padding(top = 40.dp)
@@ -178,7 +181,8 @@ fun NewValueScreen(
                 {
                     OutlinedTextField(
                         modifier = Modifier
-                            .padding(top = 5.dp),
+                            .padding(top = 5.dp)
+                            .weight(6f),
                         value = newValue,
                         onValueChange = { value ->
                             newValue = value.trimStart('0')
@@ -194,7 +198,7 @@ fun NewValueScreen(
                             Icon(
                                 painter = painterResource(R.drawable.rounded_attach_money),
                                 contentDescription = "money icon",
-                                tint = Gray
+                                tint = NewGray
                             )
                         },
                         shape = MyContabShapes.extraLarge,
@@ -202,7 +206,7 @@ fun NewValueScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Principal,
                             focusedLabelColor = Principal,
-                            unfocusedLabelColor = Gray,
+                            unfocusedLabelColor = NewGray,
                             unfocusedBorderColor = PrincipalLight,
                             unfocusedContainerColor = PrincipalLight.copy(
                                 alpha = 0.1f
@@ -210,9 +214,8 @@ fun NewValueScreen(
                             focusedContainerColor = PrincipalLight.copy(
                                 alpha = 0.1f
                             ),
-                            unfocusedTextColor = Gray.copy(alpha = 0.7f),
-                            focusedTextColor = Gray
-
+                            unfocusedTextColor = NewGray,
+                            focusedTextColor = LessBlack
                         ),
                         isError = !hasValue,
                         visualTransformation = CurrencyAmountInputVisualTransformation(),
@@ -223,14 +226,16 @@ fun NewValueScreen(
                     )
                     Column(
                         verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.End,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .size(70.dp)
+                            .height(70.dp)
+                            .weight(1f)
                             .padding(start = 5.dp)
 
                     ) {
                         Text(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .background(
                                     color = Light,
                                 )
@@ -238,7 +243,7 @@ fun NewValueScreen(
                                 .padding(top = 2.dp),
                             text = "Group",
                             textAlign = TextAlign.Center,
-                            color = Gray,
+                            color = LessBlack,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.W400
                         )
@@ -248,18 +253,22 @@ fun NewValueScreen(
                                 .border(
                                     width = 1.dp,
                                     color = PrincipalLight,
-                                    shape = MyContabShapes.extraLarge
+                                    shape = RoundedCornerShape(10.dp)
                                 )
-                                .size(50.dp),
+                                .fillMaxWidth(),
                             onClick = { expanded = true },
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = PrincipalLight.copy(alpha = 0.1f)
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(10.dp)
                         )
                         {
                             selectedGroup?.let {
-                                Icon(it.painter, contentDescription = it.description)
+                                Icon(
+                                    it.painter,
+                                    contentDescription = it.description,
+                                    tint = LessBlack
+                                )
                             }
                         }
 
@@ -309,14 +318,16 @@ fun NewValueScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Principal,
                         focusedLabelColor = Principal,
-                        unfocusedLabelColor = Gray,
+                        unfocusedLabelColor = NewGray,
                         unfocusedBorderColor = PrincipalLight,
                         unfocusedContainerColor = PrincipalLight.copy(
                             alpha = 0.1f
                         ),
                         focusedContainerColor = PrincipalLight.copy(
                             alpha = 0.1f
-                        )
+                        ),
+                        unfocusedTextColor = NewGray,
+                        focusedTextColor = LessBlack
                     )
                 )
                 // ====== MONTH PICKER ======
@@ -449,7 +460,7 @@ data class IconOption(
     val painter: Painter,
     val description: String,
     val groupId: Int,
-    val groupIcon: Int
+    val groupIcon: String
 )
 
 @Composable

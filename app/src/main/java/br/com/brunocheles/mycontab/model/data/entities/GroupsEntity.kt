@@ -15,6 +15,5 @@ import androidx.room.PrimaryKey
 data class GroupsEntity(
     @PrimaryKey(autoGenerate = true)    val id: Int,
     @ColumnInfo(name = "group_name")    val groupName: String,
-    @ColumnInfo(name = "group_icon")    val groupIcon: Int,
     @ColumnInfo(name = "group_user_id") var groupUserId: String
 )

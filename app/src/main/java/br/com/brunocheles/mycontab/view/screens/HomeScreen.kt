@@ -30,10 +30,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,9 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Green
-import br.com.brunocheles.mycontab.ui.theme.LessLight
 import br.com.brunocheles.mycontab.ui.theme.NewGreen
 import br.com.brunocheles.mycontab.ui.theme.NewLight
 import br.com.brunocheles.mycontab.ui.theme.NewRed
@@ -80,7 +82,7 @@ fun HomeScreen(
     incomeUiState: IncomeUiState,
     groupsUiState: GroupsUiState,
     onNewValueClick: (ValueType) -> Unit,
-    onEditValueClick: (ValueType) -> Unit,
+    onEditValueClick: (Int) -> Unit,
     onConfirmMonthYear: (Int, Int) -> Unit,
     locale: Locale = Locale.ROOT
 ) {
@@ -89,6 +91,7 @@ fun HomeScreen(
 
     val selectedMonth = uiState.month
     val selectedYear = uiState.year
+    val userId = uiState.userLogged?.userId
 
     val interactionSource by remember { mutableStateOf(MutableInteractionSource()) }
     val months = DateFormatSymbols(Locale.US).months.filter { it.isNotEmpty() }
@@ -109,6 +112,13 @@ fun HomeScreen(
         transition = transitionMonth,
         valueForTrue = 180f
     )
+
+    LaunchedEffect(key1 = selectedMonth, key2 = selectedYear, key3 = userId) {
+        if (userId != null) {
+            // Chama a mesma função que você usava no dialog
+            onConfirmMonthYear(selectedYear, selectedMonth)
+        }
+    }
 
     val sumIncomes = incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 }
     val sumExpenses = expenseUiState.expenseValuesMonth.sumOf { it?.expenseValue ?: 0.0 }
@@ -174,7 +184,7 @@ fun HomeScreen(
                 shape = RoundedCornerShape(bottomStartPercent = 15, bottomEndPercent = 15),
                 elevation = CardDefaults.cardElevation(5.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = LessLight
+                    containerColor = NewLight
                 )
             )
             {
@@ -225,7 +235,7 @@ fun HomeScreen(
                                         )
                                     },
                                     fontSize = 18.sp,
-                                    color = Gray,
+                                    color = NewGray,
                                     textAlign = TextAlign.Center,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -234,7 +244,7 @@ fun HomeScreen(
                                         .rotate(rotationMonth),
                                     painter = painterResource(R.drawable.rounded_arrow_drop_down),
                                     contentDescription = "drop_down",
-                                    tint = Gray
+                                    tint = NewGray
                                 )
                             }
                         }
@@ -246,7 +256,7 @@ fun HomeScreen(
                             text = selectedYear.toString(),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Gray,
+                            color = NewGray,
                             textAlign = TextAlign.End
                         )
                     }
@@ -263,13 +273,13 @@ fun HomeScreen(
                                 text = "balance".uppercase(),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Gray
+                                color = NewGray
                             )
                             Text(
                                 text = "R$%.2f".format(sumValues),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (sumValues > 0) NewGreen else if (sumValues < 0) NewRed else Gray
+                                color = if (sumValues > 0) NewGreen else if (sumValues < 0) NewRed else NewGray
                             )
                         }
                     }
@@ -295,7 +305,7 @@ fun HomeScreen(
                             iconModifier = Modifier,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                onEditValueClick(ValueType.INCOME)
+                                onEditValueClick(0)
                             }
                         )
                         Spacer(modifier = Modifier.padding(horizontal = 10.dp))
@@ -307,7 +317,7 @@ fun HomeScreen(
                             iconModifier = Modifier.rotate(180f),
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                onEditValueClick(ValueType.EXPENSE)
+                                onEditValueClick(1)
                             }
                         )
                     }
@@ -318,6 +328,7 @@ fun HomeScreen(
                 item {
                     RecentActivityCard(
                         transactions = sortedGroupedValues,
+                        month = selectedMonth,
                         groups = groupsUiState.groups,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -359,13 +370,12 @@ fun HomeScreen(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.rounded_add),
-                    tint = Gray,
+                    tint = NewGray,
                     contentDescription = "",
                     modifier = Modifier
                         .rotate(rotationFAB)
                 )
             }
-            Spacer(modifier = Modifier.padding(vertical = 10.dp))
         }
     }
     AnimatedVisibility(
@@ -406,7 +416,7 @@ private fun FloatingActionMenus(
         Text(
             text = "New Income",
             modifier = Modifier.padding(start = 4.dp),
-            color = Gray,
+            color = NewGray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -417,7 +427,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = Gray.copy(alpha = 0.9f),
+            tint = NewGray.copy(alpha = 0.9f),
             contentDescription = "income"
         )
     }
@@ -440,7 +450,7 @@ private fun FloatingActionMenus(
         Text(
             text = "New Expense",
             modifier = Modifier.padding(start = 4.dp),
-            color = Gray,
+            color = NewGray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -452,7 +462,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = Gray,
+            tint = NewGray,
             contentDescription = "expense"
         )
     }
@@ -469,8 +479,7 @@ fun SummaryCard(
     iconModifier: Modifier
 ) {
     Card(
-        modifier = modifier
-            .clickable(onClick = onClick),
+        modifier = modifier,
         elevation = CardDefaults.cardElevation(3.dp),
         colors = CardDefaults.cardColors(
             containerColor = NewLight
@@ -478,6 +487,7 @@ fun SummaryCard(
     ) {
         Column(
             Modifier
+                .clickable(onClick = onClick)
                 .padding(16.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -508,9 +518,11 @@ fun SummaryCard(
 @Composable
 fun RecentActivityCard(
     transactions: Map<Int, List<ShowValueItem>>,
+    month: Int,
     groups: List<GroupsEntity?>,
     modifier: Modifier = Modifier
 ) {
+    val showMonth = month + 1
     Card(
         modifier = modifier,
         elevation = CardDefaults.cardElevation(3.dp),
@@ -523,7 +535,7 @@ fun RecentActivityCard(
                 text = "Month Transactions",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Gray,
+                color = NewGray,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             Spacer(
@@ -531,7 +543,7 @@ fun RecentActivityCard(
                     .height(1.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 5.dp)
-                    .background(color = Gray.copy(0.2f))
+                    .background(color = NewGray.copy(0.2f))
             )
             LazyColumn(
                 modifier = Modifier
@@ -543,23 +555,40 @@ fun RecentActivityCard(
 //                    TransactionItem(transaction, groups = groups)
                     stickyHeader {
                         Surface(
-                            color = Color.Transparent,
-                            tonalElevation = 4.dp,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            color = NewLight,
+                            tonalElevation = 4.dp
                         ) {
-                            Text(
-                                modifier = Modifier
-                                    .padding(vertical = 6.dp, horizontal = 12.dp),
-                                text = "%02d".format(day),
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                // Padding maior para "respirar"
+                                modifier = Modifier.padding(start = 8.dp, top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    // Ícone para dar o contexto de data
+                                    painter = painterResource(R.drawable.rounded_date_range), // Use seu ícone de calendário
+                                    contentDescription = "Data",
+                                    tint = Principal, // Cor de destaque do seu tema
+                                    modifier = Modifier.size(16.dp) // Ícone pequeno
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "%02d/%02d".format(day, showMonth),
+                                    fontWeight = FontWeight.Bold,
+                                    color = NewGray, // Cor do texto
+                                    style = MaterialTheme.typography.titleSmall // Estilo de fonte
+                                )
+                            }
                         }
                     }
                     items(
-                        items = transactions
+                        items = transactions,
+                        key = {Pair(it.isExpense, it.id)}
                     ) { transaction ->
                         TransactionItem(
                             item = transaction,
+                            height = 34.dp,
+                            fontSize = 14.sp,
                             groups = groups,
                             isEdit = false,
                             onDelete = {}

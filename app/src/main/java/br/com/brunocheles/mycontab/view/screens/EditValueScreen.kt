@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.Gray
+import br.com.brunocheles.mycontab.ui.theme.NewGray
+import br.com.brunocheles.mycontab.ui.theme.GreenMedium
+import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.LessLight
 import br.com.brunocheles.mycontab.ui.theme.NewLight
 import br.com.brunocheles.mycontab.ui.theme.Principal
@@ -60,6 +63,7 @@ import br.com.brunocheles.mycontab.view.states.IncomeUiState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditValueScreen(
+    typeIndex: Int,
     incomeUiState: IncomeUiState,
     expenseUiState: ExpenseUiState,
     groups: List<GroupsEntity?>,
@@ -69,39 +73,44 @@ fun EditValueScreen(
 ) {
     var isEditValueOpen by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ShowValueItem?>(null) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Expenses", "Incomes")
+    var selectedTabIndex by remember { mutableIntStateOf(typeIndex) }
+    val tabTitles = listOf("Incomes", "Expenses")
+    val sheetState = rememberStandardBottomSheetState(skipHiddenState = false)
 
-    val incomesList = incomeUiState.incomeValuesMonth.map {
+    val incomesList = incomeUiState.incomeValuesMonth
+        .filterNotNull()
+        .map {
         ShowValueItem(
-            id = it?.incomeId,
-            value = it?.incomeValue,
-            name = it?.incomeDesc,
-            day = it?.incomeDay,
-            month = it?.incomeMonth,
-            year = it?.incomeYear,
-            groupId = it?.incomeGroupId,
-            groupIcon = it?.incomeGroupIcon,
+            id = it.incomeId,
+            value = it.incomeValue,
+            name = it.incomeDesc,
+            day = it.incomeDay,
+            month = it.incomeMonth,
+            year = it.incomeYear,
+            groupId = it.incomeGroupId,
+            groupIcon = it.incomeGroupIcon,
             isExpense = false,
         )
     }
-    val expensesList = expenseUiState.expenseValuesMonth.map {
+    val expensesList = expenseUiState.expenseValuesMonth
+        .filterNotNull()
+        .map {
         ShowValueItem(
-            id = it?.expenseId,
-            value = it?.expenseValue,
-            name = it?.expenseDesc,
-            day = it?.expenseDay,
-            month = it?.expenseMonth,
-            year = it?.expenseYear,
-            groupId = it?.expenseGroupId,
-            groupIcon = it?.expenseGroupIcon,
+            id = it.expenseId,
+            value = it.expenseValue,
+            name = it.expenseDesc,
+            day = it.expenseDay,
+            month = it.expenseMonth,
+            year = it.expenseYear,
+            groupId = it.expenseGroupId,
+            groupIcon = it.expenseGroupIcon,
             isExpense = true
         )
     }
 
-    val currentList = if (selectedTabIndex == 0) expensesList else incomesList
+    val currentList = if (selectedTabIndex == 0) incomesList else expensesList
     val totalAmount = currentList.sumOf { it.value!! }
-    val totalLabel = if (selectedTabIndex == 0) "Total Expenses" else "Total Incomes"
+    val totalLabel = if (selectedTabIndex == 0) "Total Incomes" else "Total Expenses"
 
     Box(
         modifier = Modifier
@@ -115,7 +124,7 @@ fun EditValueScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .padding(start = 30.dp, top = 40.dp, end = 30.dp, bottom = 20.dp)
+                    .padding(start = 20.dp, top = 40.dp, end = 20.dp, bottom = 20.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -129,14 +138,14 @@ fun EditValueScreen(
                     Icon(
                         painter = painterResource(R.drawable.rounded_arrow_back_ios_new),
                         contentDescription = "close",
-                        tint = Gray
+                        tint = LessBlack
                     )
                 }
                 Text(
                     text = "Month Transactions",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Gray
+                    color = LessBlack
                 )
                 Box(
                     modifier = Modifier.size(40.dp)
@@ -152,7 +161,7 @@ fun EditValueScreen(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color.Transparent,
-                    contentColor = Gray,
+                    contentColor = NewGray,
                     indicator = {
                         TabRowDefaults.PrimaryIndicator(
                             modifier = Modifier
@@ -170,13 +179,14 @@ fun EditValueScreen(
                             modifier = Modifier
                                 .background(
                                     color = if(selectedTabIndex == index) Principal else Color.Transparent,
-                                    shape = RoundedCornerShape(50)
-                                ),
+                                    shape = CircleShape
+                                )
+                                .clip(CircleShape),
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
                             text = { Text(title, fontWeight = FontWeight.Bold) },
-                            selectedContentColor = Gray,
-                            unselectedContentColor = Gray.copy(alpha = 0.6f)
+                            selectedContentColor = LessBlack,
+                            unselectedContentColor = NewGray.copy(alpha = 0.8f)
                         )
                     }
                 }
@@ -186,7 +196,7 @@ fun EditValueScreen(
                     text = "$totalLabel: R$${"%.2f".format(totalAmount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = RedMedium,
+                    color = if(selectedTabIndex == 0) GreenMedium else RedMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -199,7 +209,7 @@ fun EditValueScreen(
                         .fillMaxSize()
                         .padding(horizontal = 20.dp)
                 ) {
-                    items(currentList) { transaction ->
+                    items(currentList, key = { it.id!! }) { transaction ->
                         TransactionListItem(
                             groups = groups,
                             transaction = transaction,
@@ -217,7 +227,7 @@ fun EditValueScreen(
     AnimatedVisibility(isEditValueOpen && selectedItem != null) {
         selectedItem?.let { item ->
             EditValueDialog(
-                sheetState = rememberStandardBottomSheetState(),
+                sheetState = sheetState,
                 onDismiss = {
                     isEditValueOpen = false
                     selectedItem = null
@@ -243,21 +253,26 @@ fun TransactionListItem(
 ) {
     Card(
         modifier = Modifier
-            .height(60.dp)
-            .clickable(
-                onClick = onClick
-            ),
+            .height(60.dp),
         colors = CardDefaults.cardColors(
             containerColor = LessLight
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        TransactionItem(
-            item = transaction,
-            groups = groups,
-            isEdit = true,
-            onDelete = onDeleteClick
-        )
+        Box(
+            modifier = Modifier.clickable(
+                onClick = onClick
+                )
+        ) {
+            TransactionItem(
+                item = transaction,
+                height = 60.dp,
+                fontSize = 16.sp,
+                groups = groups,
+                isEdit = true,
+                onDelete = onDeleteClick
+            )
+        }
     }
     Spacer(modifier = Modifier.height(6.dp))
 }
@@ -271,6 +286,7 @@ fun EditValueScreenPreview() {
         color = LessLight
     ) {
         EditValueScreen(
+            typeIndex = 0,
             incomeUiState = IncomeUiState(),
             expenseUiState = ExpenseUiState(),
             groups = emptyList(),

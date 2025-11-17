@@ -1,6 +1,5 @@
 package br.com.brunocheles.mycontab.view.viewmodel
 
-import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.brunocheles.mycontab.R
@@ -30,13 +29,13 @@ class GroupViewModel @Inject constructor(
 ) : ViewModel() {
     val appUser = resourceProvider.getString(R.string.app_user_name)
     private val coreGroupsList = listOf(
-        GroupsEntity(0, "Wallet", R.drawable.core_group_rounded_wallet, appUser),
-        GroupsEntity(0, "Card", R.drawable.core_group_rounded_credit_card, appUser),
-        GroupsEntity(0, "Home", R.drawable.core_group_rounded_family_home, appUser),
-        GroupsEntity(0, "Trip", R.drawable.core_group_rounded_trip, appUser),
-        GroupsEntity(0, "Wage", R.drawable.core_group_rounded_money_bag, appUser),
-        GroupsEntity(0, "Vehicle", R.drawable.core_group_rounded_directions_car, appUser),
-        GroupsEntity(0, "Shopping", R.drawable.core_group_rounded_shopping_cart, appUser)
+        GroupsEntity(0, "Wallet", appUser),
+        GroupsEntity(0, "Card",  appUser),
+        GroupsEntity(0, "Home",  appUser),
+        GroupsEntity(0, "Trip", appUser),
+        GroupsEntity(0, "Wage", appUser),
+        GroupsEntity(0, "Vehicle", appUser),
+        GroupsEntity(0, "Shopping", appUser)
     )
     private val _groups = MutableStateFlow<List<GroupsEntity>>(emptyList())
     val uiState: StateFlow<GroupsUiState> = _groups.map { groups -> GroupsUiState(groups = groups) }

@@ -173,8 +173,9 @@ fun SetupNavDisplay(
                     }
                 )
             }
-            entry<Screen.EditValue> {
+            entry<Screen.EditValue> { it ->
                 EditValueScreen(
+                    typeIndex = it.index,
                     incomeUiState = incomeUiState,
                     expenseUiState = expenseUiState,
                     groups = groupUiState.groups,
