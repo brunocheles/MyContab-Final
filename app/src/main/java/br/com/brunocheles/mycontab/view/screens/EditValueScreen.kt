@@ -47,13 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.NewGray
-import br.com.brunocheles.mycontab.ui.theme.GreenMedium
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.LessLight
+import br.com.brunocheles.mycontab.ui.theme.LessWhite
+import br.com.brunocheles.mycontab.ui.theme.NewGray
+import br.com.brunocheles.mycontab.ui.theme.NewGreen
 import br.com.brunocheles.mycontab.ui.theme.NewLight
+import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Principal
-import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.components.EditValueDialog
 import br.com.brunocheles.mycontab.view.components.TransactionItem
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
@@ -115,7 +116,7 @@ fun EditValueScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = NewLight)
+            .background(color = LessLight)
     )
     {
         Column(
@@ -158,9 +159,11 @@ fun EditValueScreen(
             ) {
                 // 1. Abas (Tabs)
                 PrimaryTabRow(
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .clip(CircleShape),
                     selectedTabIndex = selectedTabIndex,
-                    containerColor = Color.Transparent,
+                    containerColor = LessWhite,
                     contentColor = NewGray,
                     indicator = {
                         TabRowDefaults.PrimaryIndicator(
@@ -196,7 +199,7 @@ fun EditValueScreen(
                     text = "$totalLabel: R$${"%.2f".format(totalAmount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if(selectedTabIndex == 0) GreenMedium else RedMedium,
+                    color = if(selectedTabIndex == 0) NewGreen else NewRed,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -255,7 +258,7 @@ fun TransactionListItem(
         modifier = Modifier
             .height(60.dp),
         colors = CardDefaults.cardColors(
-            containerColor = LessLight
+            containerColor = NewLight
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {

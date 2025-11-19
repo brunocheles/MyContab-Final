@@ -25,8 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
+import br.com.brunocheles.mycontab.ui.theme.Green
 import br.com.brunocheles.mycontab.ui.theme.GreenMedium
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
+import br.com.brunocheles.mycontab.ui.theme.NewGreen
+import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Red
 import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
@@ -43,7 +46,7 @@ fun TransactionItem(
     val group = remember(item?.groupId, groups) {
         groups.find { it!!.id == item?.groupId }
     }
-    val color = if (item?.isExpense == true) RedMedium else GreenMedium
+    val color = if (item?.isExpense == true) NewRed else NewGreen
 
     item?.let {
         val iconResId = IconUtils.getIconIdByName(it.groupIcon)
@@ -104,7 +107,7 @@ fun TransactionItem(
                                 modifier = Modifier.clickable(
                                     onClick = onDelete
                                 ),
-                                tint = Red
+                                tint = RedMedium
                             )
                         }
                         false -> {}

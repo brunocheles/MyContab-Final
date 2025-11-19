@@ -30,7 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,13 +55,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.entities.GroupsEntity
+import br.com.brunocheles.mycontab.ui.theme.GreenMedium
+import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.NewGray
-import br.com.brunocheles.mycontab.ui.theme.Green
 import br.com.brunocheles.mycontab.ui.theme.NewGreen
 import br.com.brunocheles.mycontab.ui.theme.NewLight
 import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Principal
-import br.com.brunocheles.mycontab.ui.theme.Red
+import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.animations.AnimationController
 import br.com.brunocheles.mycontab.view.components.MonthPickerDialog
 import br.com.brunocheles.mycontab.view.components.TransactionItem
@@ -370,7 +370,7 @@ fun HomeScreen(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.rounded_add),
-                    tint = NewGray,
+                    tint = Light,
                     contentDescription = "",
                     modifier = Modifier
                         .rotate(rotationFAB)
@@ -410,13 +410,13 @@ private fun FloatingActionMenus(
         shape = CircleShape,
         contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Green
+            containerColor = GreenMedium
         )
     ) {
         Text(
             text = "New Income",
             modifier = Modifier.padding(start = 4.dp),
-            color = NewGray,
+            color = Light,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -427,7 +427,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = NewGray.copy(alpha = 0.9f),
+            tint = Light,
             contentDescription = "income"
         )
     }
@@ -444,13 +444,13 @@ private fun FloatingActionMenus(
         shape = CircleShape,
         contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Red
+            containerColor = RedMedium
         )
     ) {
         Text(
             text = "New Expense",
             modifier = Modifier.padding(start = 4.dp),
-            color = NewGray,
+            color = Light,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -462,7 +462,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = NewGray,
+            tint = Light,
             contentDescription = "expense"
         )
     }
