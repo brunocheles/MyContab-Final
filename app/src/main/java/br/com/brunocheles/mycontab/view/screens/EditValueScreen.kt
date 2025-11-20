@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.LessLight
 import br.com.brunocheles.mycontab.ui.theme.LessWhite

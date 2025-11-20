@@ -1,7 +1,7 @@
 package br.com.brunocheles.mycontab.model.data.repositories
 
 import br.com.brunocheles.mycontab.model.dao.GroupDao
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject

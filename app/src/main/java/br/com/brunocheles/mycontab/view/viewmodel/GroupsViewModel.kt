@@ -7,7 +7,7 @@ import br.com.brunocheles.mycontab.model.data.repositories.GroupRepository
 import br.com.brunocheles.mycontab.model.data.repositories.UserRepository
 import br.com.brunocheles.mycontab.model.di.DataStoreManager
 import br.com.brunocheles.mycontab.model.di.ResourceProvider
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject

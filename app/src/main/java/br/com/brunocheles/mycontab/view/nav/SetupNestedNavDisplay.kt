@@ -103,10 +103,10 @@ fun SetupNestedNavDisplay(
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = LessLight,
+                            selectedIconColor = NewGray,
                             selectedTextColor = Principal,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray,
+                            unselectedIconColor = Color.LightGray,
+                            unselectedTextColor = Color.LightGray,
                             indicatorColor = Principal
                         )
                     )

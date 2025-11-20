@@ -1,4 +1,4 @@
-package br.com.brunocheles.mycontab.model.entities
+package br.com.brunocheles.mycontab.model.data.entities
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

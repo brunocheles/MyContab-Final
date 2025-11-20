@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import br.com.brunocheles.mycontab.model.entities.IncomesEntity
+import br.com.brunocheles.mycontab.model.data.entities.IncomesEntity
 
 
 @Dao

@@ -1,5 +1,6 @@
 package br.com.brunocheles.mycontab.view.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,8 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,23 +50,25 @@ import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.components.Expense
 import br.com.brunocheles.mycontab.model.components.Income
 import br.com.brunocheles.mycontab.model.items.User
-import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.GreenDark
 import br.com.brunocheles.mycontab.ui.theme.GreenMedium
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
 import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.components.CurrencyAmountInputVisualTransformation
 import br.com.brunocheles.mycontab.view.components.DatePickerFieldToModal
+import br.com.brunocheles.mycontab.view.components.GroupSelection
 import br.com.brunocheles.mycontab.view.components.IconUtils
 import br.com.brunocheles.mycontab.view.components.ValueType
 import br.com.brunocheles.mycontab.view.states.AuthUiState
 import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
 import java.time.LocalDate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewValueScreen(
     type: ValueType,
@@ -82,6 +85,7 @@ fun NewValueScreen(
             LocalDate.now().dayOfMonth)
         )
     }
+    val sheetState = rememberStandardBottomSheetState(skipHiddenState = false)
 
     var newValue by rememberSaveable { mutableStateOf("000") }
     var hasValue by remember { mutableStateOf(true) }
@@ -253,48 +257,21 @@ fun NewValueScreen(
                                 .border(
                                     width = 1.dp,
                                     color = PrincipalLight,
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                                 .fillMaxWidth(),
                             onClick = { expanded = true },
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = PrincipalLight.copy(alpha = 0.1f)
                             ),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                         {
                             selectedGroup?.let {
                                 Icon(
                                     it.painter,
                                     contentDescription = it.description,
-                                    tint = LessBlack
-                                )
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        )
-                        {
-                            groupOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        selectedGroupId = option.groupId
-                                        expanded = false
-                                    },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                option.painter,
-                                                contentDescription = option.description
-                                            )
-                                            Text(
-                                                modifier = Modifier.padding(start = 8.dp),
-                                                text = option.description
-                                            )
-                                        }
-                                    }
+                                    tint = NewGray
                                 )
                             }
                         }
@@ -453,6 +430,24 @@ fun NewValueScreen(
                 }
             }
         }
+
+        AnimatedVisibility(
+            expanded
+        ) {
+            selectedGroupId?.let {
+                GroupSelection(
+                    sheetState = sheetState,
+                    onDismiss = {
+                        expanded = false
+                    },
+                    selectedGroupId = it,
+                    groups = groupOptions,
+                    onConfirm = { selected ->
+                        selectedGroupId = selected
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -464,7 +459,7 @@ data class IconOption(
 )
 
 @Composable
-@Preview(showBackground = true, apiLevel = 35)
+@Preview(showBackground = true)
 fun NewValueScreenPreview() {
     val fakeUser = User(
         username = "Teste",

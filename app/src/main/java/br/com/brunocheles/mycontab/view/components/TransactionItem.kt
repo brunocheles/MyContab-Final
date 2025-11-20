@@ -24,13 +24,10 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.Green
-import br.com.brunocheles.mycontab.ui.theme.GreenMedium
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
 import br.com.brunocheles.mycontab.ui.theme.NewGreen
 import br.com.brunocheles.mycontab.ui.theme.NewRed
-import br.com.brunocheles.mycontab.ui.theme.Red
 import br.com.brunocheles.mycontab.ui.theme.RedMedium
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
 
@@ -48,7 +45,7 @@ fun TransactionItem(
     }
     val color = if (item?.isExpense == true) NewRed else NewGreen
 
-    item?.let {
+    item?.let { it ->
         val iconResId = IconUtils.getIconIdByName(it.groupIcon)
         ListItem(
             modifier = Modifier

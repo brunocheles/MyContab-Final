@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import br.com.brunocheles.mycontab.model.entities.PlansEntity
+import br.com.brunocheles.mycontab.model.data.entities.PlansEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

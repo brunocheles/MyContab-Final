@@ -9,9 +9,9 @@ import br.com.brunocheles.mycontab.model.dao.PlanDao
 import br.com.brunocheles.mycontab.model.dao.UserDao
 import br.com.brunocheles.mycontab.model.data.entities.ExpensesEntity
 import br.com.brunocheles.mycontab.model.data.entities.UserEntity
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.model.entities.IncomesEntity
-import br.com.brunocheles.mycontab.model.entities.PlansEntity
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
+import br.com.brunocheles.mycontab.model.data.entities.IncomesEntity
+import br.com.brunocheles.mycontab.model.data.entities.PlansEntity
 
 @Database(
     entities = [

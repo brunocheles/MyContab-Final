@@ -1,7 +1,14 @@
 package br.com.brunocheles.mycontab.view.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -44,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
@@ -54,15 +60,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
-import br.com.brunocheles.mycontab.model.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.GreenMedium
-import br.com.brunocheles.mycontab.ui.theme.Light
-import br.com.brunocheles.mycontab.ui.theme.NewGray
-import br.com.brunocheles.mycontab.ui.theme.NewGreen
-import br.com.brunocheles.mycontab.ui.theme.NewLight
-import br.com.brunocheles.mycontab.ui.theme.NewRed
-import br.com.brunocheles.mycontab.ui.theme.Principal
-import br.com.brunocheles.mycontab.ui.theme.RedMedium
+import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
+import br.com.brunocheles.mycontab.ui.theme.*
 import br.com.brunocheles.mycontab.view.animations.AnimationController
 import br.com.brunocheles.mycontab.view.components.MonthPickerDialog
 import br.com.brunocheles.mycontab.view.components.TransactionItem
@@ -74,6 +73,7 @@ import br.com.brunocheles.mycontab.view.states.IncomeUiState
 import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
 import java.text.DateFormatSymbols
 import java.util.Locale
+import java.util.SortedMap
 
 @Composable
 fun HomeScreen(
@@ -96,18 +96,9 @@ fun HomeScreen(
     val interactionSource by remember { mutableStateOf(MutableInteractionSource()) }
     val months = DateFormatSymbols(Locale.US).months.filter { it.isNotEmpty() }
 
-    val transitionFAB = updateTransition(targetState = isFABOpen, label = "")
     val transitionMonth = updateTransition(targetState = isMonthChangeOpen, label = "")
     val animationController = remember { AnimationController() }
 
-    val rotationFAB = animationController.animateFloatWithTransition(
-        transition = transitionFAB,
-        valueForTrue = 45f
-    )
-    val menuScaleFAB = animationController.animateFloatWithTransition(
-        transition = transitionFAB,
-        valueForTrue = 1f
-    )
     val rotationMonth = animationController.animateFloatWithTransition(
         transition = transitionMonth,
         valueForTrue = 180f
@@ -120,48 +111,54 @@ fun HomeScreen(
         }
     }
 
-    val sumIncomes = incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 }
-    val sumExpenses = expenseUiState.expenseValuesMonth.sumOf { it?.expenseValue ?: 0.0 }
-    val sumValues = incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 } -
-            expenseUiState.expenseValuesMonth.sumOf { it?.expenseValue ?: 0.0 }
-
-    val incomesMapped = incomeUiState.incomeValuesMonth.filterNotNull().map { income ->
-        ShowValueItem(
-            value = income.incomeValue,
-            name = income.incomeDesc,
-            day = income.incomeDay,
-            month = income.incomeMonth,
-            year = income.incomeYear,
-            groupId = income.incomeGroupId,
-            isExpense = false,
-            id = income.incomeId,
-            groupIcon = income.incomeGroupIcon
-        )
+    val sumIncomes = remember(incomeUiState.incomeValuesMonth) {
+        incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 }
+    }
+    val sumExpenses = remember(expenseUiState.expenseValuesMonth) {
+        expenseUiState.expenseValuesMonth.sumOf { it?.expenseValue ?: 0.0 }
+    }
+    val sumValues = remember(sumIncomes, sumExpenses) {
+        sumIncomes - sumExpenses
     }
 
-// 2. Mapeie os 'expenses' para 'ShowValueItem'
-    val expensesMapped = expenseUiState.expenseValuesMonth.filterNotNull().map { expense ->
-        ShowValueItem(
-            value = expense.expenseValue,
-            name = expense.expenseDesc,
-            day = expense.expenseDay,
-            month = expense.expenseMonth,
-            year = expense.expenseYear,
-            groupId = expense.expenseGroupId,
-            isExpense = true,
-            id = expense.expenseId,
-            groupIcon = expense.expenseGroupIcon
-        )
+    val sortedGroupedValues = remember(incomeUiState.incomeValuesMonth, expenseUiState.expenseValuesMonth) {
+        // 1. Mapeie os 'incomes'
+        val incomesMapped = incomeUiState.incomeValuesMonth.filterNotNull().map { income ->
+            ShowValueItem(
+                value = income.incomeValue,
+                name = income.incomeDesc,
+                day = income.incomeDay,
+                month = income.incomeMonth,
+                year = income.incomeYear,
+                groupId = income.incomeGroupId,
+                isExpense = false,
+                id = income.incomeId,
+                groupIcon = income.incomeGroupIcon
+            )
+        }
+
+        // 2. Mapeie os 'expenses'
+        val expensesMapped = expenseUiState.expenseValuesMonth.filterNotNull().map { expense ->
+            ShowValueItem(
+                value = expense.expenseValue,
+                name = expense.expenseDesc,
+                day = expense.expenseDay,
+                month = expense.expenseMonth,
+                year = expense.expenseYear,
+                groupId = expense.expenseGroupId,
+                isExpense = true,
+                id = expense.expenseId,
+                groupIcon = expense.expenseGroupIcon
+            )
+        }
+
+        val allMonthValues = (incomesMapped + expensesMapped)
+
+        val groupedByDate = allMonthValues.groupBy { item -> item.day }
+
+        // Retorna o mapa ordenado
+        groupedByDate.toSortedMap(compareByDescending { it })
     }
-
-    val allMonthValues = (incomesMapped + expensesMapped)
-
-    val groupedByDate: Map<Int?, List<ShowValueItem>> = allMonthValues.groupBy { item ->
-        item.day
-    }
-
-    val sortedGroupedValues: Map<Int, List<ShowValueItem>> = groupedByDate
-        .toSortedMap(compareByDescending { it })
 
     Box(
         modifier = Modifier
@@ -345,35 +342,46 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Bottom
         )
         {
-            if (isFABOpen) {
-                FloatingActionMenus(
-                    actionMenuScale = menuScaleFAB,
-                    onIncomeClick = {
-                        onNewValueClick(ValueType.INCOME)
-                        isFABOpen = !isFABOpen
-                    },
-                    onExpenseClick = {
-                        onNewValueClick(ValueType.EXPENSE)
-                        isFABOpen = !isFABOpen
-                    }
-                )
-                Spacer(modifier = Modifier.padding(vertical = 10.dp))
+            AnimatedVisibility(
+                visible = isFABOpen,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 2 }, // Começa na metade da altura para baixo
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                ) + fadeIn(),
+
+                // O menu desliza descendo e faz fade out
+                exit = slideOutVertically(
+                    targetOffsetY = { it / 2 },
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                ) + fadeOut()
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    FloatingActionMenus(
+                        onIncomeClick = {
+                            onNewValueClick(ValueType.INCOME)
+                            isFABOpen = !isFABOpen
+                        },
+                        onExpenseClick = {
+                            onNewValueClick(ValueType.EXPENSE)
+                            isFABOpen = !isFABOpen
+                        }
+                    )
+                    Spacer(modifier = Modifier.padding(vertical = 10.dp))
+                }
             }
 
             FloatingActionButton(
-                onClick = {
-                    isFABOpen = !isFABOpen
-                },
-                modifier = Modifier,
+                onClick = { isFABOpen = !isFABOpen },
                 shape = CircleShape,
                 containerColor = Principal
             ) {
+                val rotationFab by animateFloatAsState(targetValue = if (isFABOpen) 45f else 0f, label = "rotation")
                 Icon(
                     painter = painterResource(R.drawable.rounded_add),
-                    tint = Light,
+                    tint = NewGray,
                     contentDescription = "",
                     modifier = Modifier
-                        .rotate(rotationFAB)
+                        .rotate(rotationFab)
                 )
             }
         }
@@ -396,7 +404,6 @@ fun HomeScreen(
 
 @Composable
 private fun FloatingActionMenus(
-    actionMenuScale: Float,
     onIncomeClick: () -> Unit,
     onExpenseClick: () -> Unit
 ) {
@@ -404,19 +411,18 @@ private fun FloatingActionMenus(
         onClick = {
             onIncomeClick()
         },
-        modifier = Modifier.scale(actionMenuScale),
         elevation = ButtonDefaults.buttonElevation(4.dp),
         enabled = true,
         shape = CircleShape,
         contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = GreenMedium
+            containerColor = NewGreen
         )
     ) {
         Text(
             text = "New Income",
             modifier = Modifier.padding(start = 4.dp),
-            color = Light,
+            color = NewGray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -427,7 +433,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = Light,
+            tint = NewGray,
             contentDescription = "income"
         )
     }
@@ -438,19 +444,18 @@ private fun FloatingActionMenus(
         onClick = {
             onExpenseClick()
         },
-        modifier = Modifier.scale(actionMenuScale),
         elevation = ButtonDefaults.buttonElevation(4.dp),
         enabled = true,
         shape = CircleShape,
         contentPadding = PaddingValues(start = 10.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = RedMedium
+            containerColor = NewRed
         )
     ) {
         Text(
             text = "New Expense",
             modifier = Modifier.padding(start = 4.dp),
-            color = Light,
+            color = NewGray,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textDecoration = null,
@@ -462,7 +467,7 @@ private fun FloatingActionMenus(
                 .clip(CircleShape)
                 .padding(8.dp),
             painter = painterResource(R.drawable.rounded_arrow_shape_up_stack),
-            tint = Light,
+            tint = NewGray,
             contentDescription = "expense"
         )
     }
@@ -517,7 +522,7 @@ fun SummaryCard(
 
 @Composable
 fun RecentActivityCard(
-    transactions: Map<Int, List<ShowValueItem>>,
+    transactions: SortedMap<Int?, List<ShowValueItem>>,
     month: Int,
     groups: List<GroupsEntity?>,
     modifier: Modifier = Modifier

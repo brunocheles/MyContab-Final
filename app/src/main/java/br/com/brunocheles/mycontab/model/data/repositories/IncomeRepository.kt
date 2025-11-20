@@ -3,7 +3,7 @@ package br.com.brunocheles.mycontab.model.data.repositories
 import br.com.brunocheles.mycontab.model.components.Income
 import br.com.brunocheles.mycontab.model.components.IncomeInterface
 import br.com.brunocheles.mycontab.model.dao.IncomeDao
-import br.com.brunocheles.mycontab.model.entities.IncomesEntity
+import br.com.brunocheles.mycontab.model.data.entities.IncomesEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
