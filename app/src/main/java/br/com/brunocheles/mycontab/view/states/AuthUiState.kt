@@ -8,7 +8,8 @@ data class AuthUiState(
     val success: Boolean? = null,
     val errorMessage: String? = null,
     val userLogged: User? = null,
+    val isRegistered: Boolean = false,
     val year: Int = LocalDate.now().year,
-    val month: Int = LocalDate.now().monthValue.minus(1),
+    val month: Int = LocalDate.now().monthValue,
     val actualScreen: Int = 0
 )

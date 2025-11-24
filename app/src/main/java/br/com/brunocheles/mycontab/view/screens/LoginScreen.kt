@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
@@ -62,6 +64,7 @@ import br.com.brunocheles.mycontab.ui.theme.Red
 import br.com.brunocheles.mycontab.view.components.Logo
 import br.com.brunocheles.mycontab.view.components.TrailingIconButton
 import br.com.brunocheles.mycontab.view.states.AuthUiState
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -69,17 +72,56 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     activity: Activity,
-    uiState: AuthUiState,
-    resetLogin: () -> Unit,
-    onLoginClick: (String, String) -> Unit,
     onRegisterClick: () -> Unit,
+    onNavigateToHome: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
+    val uiState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.resetState()
+    }
+
+    LaunchedEffect(uiState.success) {
+        if (uiState.success == true) {
+            onNavigateToHome()
+            // Reseta logo após navegar para evitar loops se o usuário voltar
+            authViewModel.resetState()
+        }
+    }
+
+    LoginContent(
+        activity = activity,
+        uiState = uiState,
+        onLoginClick = { email, password ->
+            authViewModel.loginWithEmail(email, password)
+        },
+        onGoogleLogin = { token ->
+            authViewModel.loginWithGoogle(token)
+        },
+        onRegisterClick = onRegisterClick
+    )
+}
+
+@Composable
+fun LoginContent(
+    activity: Activity,
+    uiState: AuthUiState,
+    onLoginClick: (String, String) -> Unit,
     onGoogleLogin: (String) -> Unit,
-    onNavigateToHome: () -> Unit
+    onRegisterClick: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var loginAttempted by remember { mutableStateOf(false) }
     var isPasswordVisible by remember { mutableStateOf(false) }
+
+    var loginAttempted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.success) {
+        if (uiState.success == false) {
+            loginAttempted = true
+        }
+    }
 
     val allFieldsFilled = email.isNotBlank() && password.isNotBlank()
     val focusManager = LocalFocusManager.current
@@ -89,24 +131,7 @@ fun LoginScreen(
         false -> LoginState.Error
         null -> LoginState.Idle
     }
-
-    LaunchedEffect(Unit) {
-        resetLogin() // Deve chamar authViewModel.resetState()
-        loginAttempted = false
-    }
-
-    LaunchedEffect(uiState.success) {
-        if (uiState.success == true) {
-            // Se o login foi um sucesso (via Google ou Email/Senha), navega para a Home
-            onNavigateToHome()
-            // Reseta o estado para limpar o flag 'success', evitando navegação dupla
-            resetLogin()
-        } else if (uiState.success == false) {
-            // Se falhou, marca que houve tentativa para mostrar a mensagem de erro
-            loginAttempted = true
-        }
-    }
-
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -362,15 +387,13 @@ fun LoginWithGoogleButton(
 }
 
 @Composable
-@Preview(apiLevel = 35)
+@Preview
 fun LoginScreenPreview() {
-    LoginScreen(
+    LoginContent(
         activity = Activity(),
         uiState = AuthUiState(),
-        onLoginClick = { _, _ -> },
-        onRegisterClick = {},
-        resetLogin = {},
-        onGoogleLogin = { _ -> },
-        onNavigateToHome = {}
+        onLoginClick = {_, _ -> },
+        onGoogleLogin = {_ -> },
+        onRegisterClick = {}
     )
 }

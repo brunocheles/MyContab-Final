@@ -7,14 +7,16 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import br.com.brunocheles.mycontab.model.data.entities.ExpensesEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExpenseDao {
+
     @Query("SELECT * FROM expenses_tb WHERE expense_user_id = (:userId) AND expense_month = (:month) AND expense_year = (:year)")
-    fun getAllMonthExpenses(userId: String?, month: Int, year: Int): List<ExpensesEntity>
+    fun getMonthExpensesStream(userId: String, month: Int, year: Int): Flow<List<ExpensesEntity>>
 
     @Query("SELECT * FROM expenses_tb WHERE expense_user_id = (:userId) AND expense_year = (:year)")
-    fun getAllYearExpenses(userId: String?, year: Int): List<ExpensesEntity>
+    fun getYearExpensesStream(userId: String, year: Int): Flow<List<ExpensesEntity>>
 
     @Insert
     fun insertExpense(expense: ExpensesEntity)

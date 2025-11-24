@@ -1,7 +1,8 @@
 package br.com.brunocheles.mycontab.view.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,12 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,13 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
+import br.com.brunocheles.mycontab.view.items.IconOption
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
-import br.com.brunocheles.mycontab.view.screens.IconOption
 import java.time.LocalDate
 import java.util.Locale
 
@@ -67,8 +64,12 @@ fun EditValueDialog(
     onDismiss: () -> Unit,
     valueItem: ShowValueItem,
     groups: List<GroupsEntity?>,
-    onConfirm: (ShowValueItem) -> Unit
+    onConfirm: (ShowValueItem) -> Unit,
+    user : String,
+    onAddNewGroup: (IconOption) -> Unit,
+    onManageGroupsClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     var valueDesc by remember { mutableStateOf("") }
     var newValue by rememberSaveable { mutableStateOf("000") }
     var hasValue by remember { mutableStateOf(true) }
@@ -97,12 +98,11 @@ fun EditValueDialog(
     val groupOptions = groups
         .filterNotNull()
         .map { group ->
-            val iconResId = IconUtils.getIconIdByName(group.groupName)
             IconOption(
-                painter = painterResource(iconResId),
                 description = group.groupName,
                 groupId = group.id,
-                groupIcon = group.groupName
+                groupIcon = group.groupIcon,
+                groupUserId = group.groupUserId,
             )
         }
 
@@ -161,75 +161,63 @@ fun EditValueDialog(
                             focusedTextColor = NewGray
                         )
                     )
-                    Column(
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.End,
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
                         modifier = Modifier
+                            .size(65.dp)
                             .weight(2f)
-                            .size(70.dp)
-                            .padding(start = 5.dp)
-
                     ) {
-                        Text(
+                        OutlinedTextField(
                             modifier = Modifier
-                                .background(
-                                    color = Light,
+                                .size(65.dp),
+                            value = ".",
+                            onValueChange = { },
+                            readOnly = true,
+                            singleLine = true,
+                            leadingIcon = {
+                                selectedGroup?.let {
+                                    val iconResId = IconUtils.getIconIdByName(it.groupIcon)
+                                Icon(
+                                    modifier = Modifier
+                                        .padding(start = 10.dp)
+                                        .size(36.dp),
+                                    painter = painterResource(iconResId),
+                                    contentDescription = it.description
                                 )
-                                .width(52.dp)
-                                .padding(top = 2.dp),
-                            text = "Group",
-                            textAlign = TextAlign.Center,
-                            color = NewGray,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.W400
-                        )
-                        IconButton(
-                            modifier = Modifier
-                                .padding(top = 1.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = PrincipalLight,
-                                    shape = MyContabShapes.extraLarge
+                            }
+                            },
+                            label = {
+                                Text(
+                                    text = "Icon",
                                 )
-                                .size(50.dp),
-                            onClick = { expanded = true },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = PrincipalLight.copy(alpha = 0.1f)
+                            },
+                            shape = MyContabShapes.extraLarge,
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
                             ),
-                            shape = MyContabShapes.extraLarge
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Principal,
+                                focusedLabelColor = Principal,
+                                unfocusedLabelColor = NewGray,
+                                unfocusedBorderColor = PrincipalLight,
+                                unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                                focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                                unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                                focusedTextColor = NewGray
+                            )
                         )
-                        {
-                            selectedGroup?.let {
-                                Icon(it.painter, contentDescription = it.description)
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        )
-                        {
-                            groupOptions.forEach { option ->
-                                DropdownMenuItem(
+                        Spacer(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
                                     onClick = {
-                                        selectedGroupId = option.groupId
-                                        expanded = false
+                                        expanded = !expanded
                                     },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                option.painter,
-                                                contentDescription = option.description
-                                            )
-                                            Text(
-                                                modifier = Modifier.padding(start = 8.dp),
-                                                text = option.description
-                                            )
-                                        }
-                                    }
+                                    interactionSource = interactionSource,
+                                    indication = null
                                 )
-                            }
-                        }
+                        )
                     }
                 }
                 OutlinedTextField(
@@ -340,11 +328,35 @@ fun EditValueDialog(
                 }
             }
         }
+        AnimatedVisibility(
+            expanded
+        ) {
+            selectedGroupId?.let {
+                GroupSelection(
+                    sheetState = sheetState,
+                    onDismiss = {
+                        expanded = false
+                    },
+                    selectedGroupId = it,
+                    groups = groupOptions,
+                    onConfirm = { selected ->
+                        selectedGroupId = selected
+                    },
+                    user = user,
+                    onAddNewGroup = { group ->
+                        onAddNewGroup(group)
+                    },
+                    onManageGroupsClick = {
+                        onManageGroupsClick()
+                    }
+                )
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, apiLevel = 35)
+@Preview(showBackground = true)
 @Composable
 fun EditValueDialogPreview() {
     val sheetState = rememberStandardBottomSheetState(
@@ -366,6 +378,9 @@ fun EditValueDialogPreview() {
             isExpense = false
         ),
         groups = emptyList(),
-        onConfirm = {}
+        onConfirm = {},
+        user = "MyContabUser",
+        onAddNewGroup = {_ -> },
+        onManageGroupsClick = {}
     )
 }

@@ -5,16 +5,23 @@ import androidx.lifecycle.viewModelScope
 import br.com.brunocheles.mycontab.model.components.Income
 import br.com.brunocheles.mycontab.model.data.repositories.IncomeRepository
 import br.com.brunocheles.mycontab.model.di.DataStoreManager
+import br.com.brunocheles.mycontab.view.items.DateFilter
 import br.com.brunocheles.mycontab.view.states.IncomeUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 
 sealed class IncomeUiEvent {
@@ -28,158 +35,94 @@ sealed class IncomeUiEvent {
 @HiltViewModel
 class IncomeViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
-    private val dataStoreManager: DataStoreManager
-): ViewModel() {
+    dataStoreManager: DataStoreManager
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(IncomeUiState())
-    val uiState: StateFlow<IncomeUiState> = _uiState.asStateFlow()
+    private val today = LocalDate.now()
+
+    private val _dateFilter = MutableStateFlow(
+        DateFilter(month = today.monthValue, year = today.year)
+    )
 
     private val _uiEvent = MutableSharedFlow<IncomeUiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    private var activeLoadingJobs = 0
-    private var currentUserId: String? = null
-    private var currentMonth: Int? = null
-    private var currentYear: Int? = null
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<IncomeUiState> = combine(
+        dataStoreManager.user,
+        _dateFilter
+    ) { user, date ->
+        Pair(user, date)
+    }.flatMapLatest { (user, date) ->
+        val userId = user?.userId
 
-    fun getAllIncomesMonth(userId:String, month: Int, year: Int) {
+        if (userId == null) {
+            flowOf(IncomeUiState(isLoading = false))
+        } else {
+            // Executa as duas queries (Mês e Ano) em paralelo e combina os resultados
+            combine(
+                incomeRepository.getMonthIncomesStream(userId, date.month, date.year),
+                incomeRepository.getYearIncomesStream(userId, date.year)
+            ) { monthList, yearList ->
+                IncomeUiState(
+                    incomeValuesMonth = monthList,
+                    incomeValuesYear = yearList,
+                    isLoading = false
+                )
+            }
+                // Opcional: emitir estado de loading ao começar a troca
+                .onStart { emit(IncomeUiState(isLoading = true)) }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = IncomeUiState(isLoading = true)
+    )
 
-        currentUserId = userId
-        currentMonth = month + 1
-        currentYear = year
+    fun updateDate(month: Int, year: Int) {
+        // Nota: Verifique se sua UI manda mês 0-11 ou 1-12.
+        // Se vier do Calendar do Java (0-11), some 1 aqui.
+        // Se vier do LocalDate (1-12), use direto.
+        // Assumindo que sua UI manda 0-11 (pelo código antigo `month + 1`):
+        _dateFilter.value = DateFilter(month + 1, year)
+    }
 
-        activeLoadingJobs++
-        _uiState.update { it.copy(isLoading = true) }
-
+    fun insertIncome(userId: String, income: Income) {
         viewModelScope.launch {
-            try {
-
-                val result = incomeRepository.getAllMonthIncomes(currentUserId!!, currentMonth!!, currentYear!!)
-
-                result.onSuccess { incomesList ->
-                    _uiState.update {
-                        it.copy(incomeValuesMonth = incomesList)
-                    }
+            // Loading será tratado pelo stateIn ou onStart se quiser algo muito reativo,
+            // mas para insert rápido, geralmente nem precisa mostrar loading full screen.
+            incomeRepository.insertIncome(userId, income)
+                .onSuccess {
                     _uiEvent.emit(IncomeUiEvent.OnSuccess)
-                }.onFailure { error ->
-                    val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                    _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
                 }
-            } finally {
-                activeLoadingJobs--
-
-                if (activeLoadingJobs == 0) {
-                    _uiState.update { it.copy(isLoading = false) }
+                .onFailure { error ->
+                    _uiEvent.emit(IncomeUiEvent.ShowError(error.message ?: "Erro ao inserir"))
                 }
-            }
         }
     }
 
-    private fun refreshData() {
-        if (currentUserId != null && currentMonth != null && currentYear != null) {
-            getAllIncomesMonth(currentUserId!!, currentMonth!!, currentYear!!)
-        }
-        // Se tiver o método de carregar o ano também, chame aqui:
-        if (currentUserId != null && currentYear != null) {
-            getAllIncomesYear(currentUserId!!, currentYear!!)
-        }
-    }
-
-    fun getAllIncomesYear(userId: String,year: Int) {
-
-        currentUserId = userId
-        currentYear = year
-
-        activeLoadingJobs++
-        _uiState.update { it.copy(isLoading = true) }
-
+    fun updateIncome(userId: String, income: Income) {
         viewModelScope.launch {
-            try {
-                val result = incomeRepository.getAllYearIncomes(currentUserId!!, currentYear!!)
-
-                result.onSuccess { incomesList ->
-                    _uiState.update {
-                        it.copy(incomeValuesYear = incomesList)
-                    }
+            // Não precisamos atualizar a lista manualmente! O Room fará isso.
+            incomeRepository.updateIncome(userId, income)
+                .onSuccess {
                     _uiEvent.emit(IncomeUiEvent.OnSuccess)
-                }.onFailure { error ->
-                    val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                    _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
                 }
-            } finally {
-                activeLoadingJobs--
-
-                if (activeLoadingJobs == 0) {
-                    _uiState.update { it.copy(isLoading = false) }
+                .onFailure {
+                    _uiEvent.emit(IncomeUiEvent.ShowError("Erro ao atualizar"))
                 }
-            }
         }
     }
 
-    fun insertIncome(userId:String, income: Income) {
+    fun deleteIncome(userId: String, income: Income) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val result = incomeRepository.insertIncome(userId, income)
-
-            result.onSuccess {
-                _uiEvent.emit(IncomeUiEvent.OnSuccess)
-                refreshData()
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun updateIncome(userId:String, income: Income) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val currentList = _uiState.value.incomeValuesMonth.toMutableList()
-
-            val index = currentList.indexOfFirst { it?.incomeId == income.incomeId }
-
-            if (index != -1) {
-                currentList[index] = income
-
-                _uiState.update { it.copy(incomeValuesMonth = currentList) }
-            }
-
-            val result = incomeRepository.updateIncome(userId, income)
-
-            result.onSuccess {
-                _uiEvent.emit(IncomeUiEvent.OnSuccess)
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun deleteIncome(userId:String, income: Income) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val currentList = _uiState.value.incomeValuesMonth.toMutableList()
-
-            val removed = currentList.removeIf { it?.incomeId == income.incomeId }
-
-            if (removed) {
-                _uiState.update { it.copy(incomeValuesMonth = currentList) }
-            }
-
-            val result = incomeRepository.deleteIncome(userId, income)
-
-            result.onSuccess {
-                _uiEvent.emit(IncomeUiEvent.OnSuccess)
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(IncomeUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
+            incomeRepository.deleteIncome(userId, income)
+                .onSuccess {
+                    _uiEvent.emit(IncomeUiEvent.OnSuccess)
+                }
+                .onFailure {
+                    _uiEvent.emit(IncomeUiEvent.ShowError("Erro ao deletar"))
+                }
         }
     }
 }

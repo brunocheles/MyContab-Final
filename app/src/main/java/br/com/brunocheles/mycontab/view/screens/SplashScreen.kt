@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,8 @@ fun SplashScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    val currentUser by rememberUpdatedState(userLogged)
+
     var startAnimation by remember { mutableStateOf(false) }
     val animationDuration = 1500L
 
@@ -64,7 +67,7 @@ fun SplashScreen(
             // Pequeno delay para garantir que o usuário veja a tela de splash
             delay(animationDuration)
 
-            if (userLogged != null) {
+            if (currentUser != null) {
                 // Usuário logado: navega para a Home
                 onNavigateToHome()
             } else {

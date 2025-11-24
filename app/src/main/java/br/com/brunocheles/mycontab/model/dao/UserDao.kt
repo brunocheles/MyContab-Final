@@ -8,14 +8,15 @@ import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
 import br.com.brunocheles.mycontab.model.data.entities.UserEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
-    @Query("SELECT * FROM user_tb WHERE userId = :userId")
-    fun getUserWithId(userId: Int): UserEntity
+    @Query("SELECT * FROM user_tb WHERE firebase_Id = :firebaseId")
+    fun getUserFlow(firebaseId: String): Flow<UserEntity?>
 
     @Query("SELECT * FROM user_tb WHERE firebase_Id = :firebaseId")
-    fun getUserWithFirebaseId(firebaseId: String): UserEntity
+    fun getUserWithFirebaseId(firebaseId: String): UserEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertUser(user: UserEntity)

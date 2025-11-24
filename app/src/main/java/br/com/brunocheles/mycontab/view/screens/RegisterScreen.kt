@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
@@ -49,11 +51,42 @@ import br.com.brunocheles.mycontab.ui.theme.PrincipalLight
 import br.com.brunocheles.mycontab.ui.theme.Red
 import br.com.brunocheles.mycontab.view.components.Logo
 import br.com.brunocheles.mycontab.view.states.AuthUiState
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
+    onLoginClick: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
+    val uiState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.resetState()
+    }
+
+    // 1. Lógica de Navegação (Sucesso)
+    LaunchedEffect(uiState.isRegistered) {
+        if (uiState.isRegistered) {
+            // Volta para a tela de Login
+            onLoginClick()
+            // Reseta para limpar os campos e o flag isRegistered
+            authViewModel.resetState()
+        }
+    }
+
+    RegisterContent(
+        uiState = uiState,
+//        resetRegister = { authViewModel.resetState() },
+        onRegisterClick = { email, username, password ->
+            authViewModel.registerWithEmail(email = email, username = username, password = password)
+        },
+        onLoginClick = onLoginClick
+    )
+}
+
+@Composable
+fun RegisterContent(
     uiState: AuthUiState,
-    resetRegister: () -> Unit,
     onRegisterClick: (String, String, String) -> Unit,
     onLoginClick: () -> Unit
 ) {
@@ -65,10 +98,6 @@ fun RegisterScreen(
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
-
-    LaunchedEffect(Unit) {
-        resetRegister()
-    }
 
     val allFieldsFilled = username.isNotBlank() &&
             email.isNotBlank() &&
@@ -316,9 +345,9 @@ fun RegisterScreen(
 @Composable
 @Preview(showBackground = true)
 fun RegisterScreenPreview() {
-    RegisterScreen(
+    RegisterContent(
         uiState = AuthUiState(),
-        resetRegister = {},
+//        resetRegister = {},
         onRegisterClick = {_, _, _ -> },
         onLoginClick = {}
     )

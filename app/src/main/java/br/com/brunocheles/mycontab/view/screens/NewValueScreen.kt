@@ -3,6 +3,8 @@ package br.com.brunocheles.mycontab.view.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +17,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +37,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,10 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.components.Expense
 import br.com.brunocheles.mycontab.model.components.Income
-import br.com.brunocheles.mycontab.model.items.User
 import br.com.brunocheles.mycontab.ui.theme.GreenDark
 import br.com.brunocheles.mycontab.ui.theme.GreenMedium
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
@@ -64,49 +64,124 @@ import br.com.brunocheles.mycontab.view.components.DatePickerFieldToModal
 import br.com.brunocheles.mycontab.view.components.GroupSelection
 import br.com.brunocheles.mycontab.view.components.IconUtils
 import br.com.brunocheles.mycontab.view.components.ValueType
-import br.com.brunocheles.mycontab.view.states.AuthUiState
-import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
+import br.com.brunocheles.mycontab.view.items.IconOption
+import br.com.brunocheles.mycontab.view.items.toGroup
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun NewValueScreen(
     type: ValueType,
     onClose: () -> Unit,
-    authUiState: AuthUiState,
-    groupsUiState: GroupsUiState,
-    onInsertIncome: (Income) -> Unit,
-    onInsertExpense: (Expense) -> Unit
+    onManageGroupsClick: () -> Unit,
+    authViewModel: AuthViewModel,
+    groupViewModel: GroupViewModel = hiltViewModel(),
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel()
 ) {
-    var selectedDate by rememberSaveable {
-        mutableStateOf(LocalDate.of(
+    val authUiState by authViewModel.uiState.collectAsState()
+    val groupsUiState by groupViewModel.uiState.collectAsState()
+    val user = authUiState.userLogged?.userId
+
+    val groupOptions = remember(groupsUiState.groups) {
+        groupsUiState.groups
+            .filterNotNull()
+            .map { group ->
+                IconOption(
+                    description = group.groupName,
+                    groupId = group.id,
+                    groupIcon = group.groupIcon,
+                    groupUserId = group.groupUserId,
+                )
+            }
+    }
+
+    val onConfirm: (Double, String, LocalDate, IconOption) -> Unit = { value, desc, date, group ->
+        user?.let { userId ->
+            when (type) {
+                ValueType.INCOME -> {
+                    incomeViewModel.insertIncome(
+                        userId = userId,
+                        income = Income(
+                            incomeId = 0,
+                            incomeValue = value,
+                            incomeDesc = desc,
+                            incomeGroupId = group.groupId,
+                            incomeGroupIcon = group.groupIcon,
+                            incomeMonth = date.monthValue,
+                            incomeYear = date.year,
+                            incomeDay = date.dayOfMonth
+                        )
+                    )
+                }
+
+                ValueType.EXPENSE -> {
+                    expenseViewModel.insertExpense(
+                        userId = userId,
+                        expense = Expense(
+                            expenseId = 0,
+                            expenseValue = value,
+                            expenseDesc = desc,
+                            expenseGroupId = group.groupId,
+                            expenseGroupIcon = group.groupIcon,
+                            expenseMonth = date.monthValue,
+                            expenseYear = date.year,
+                            expenseDay = date.dayOfMonth
+                        )
+                    )
+                }
+            }
+        }
+        onClose()
+    }
+
+    // 4. Lógica de adicionar Grupo novo
+    val onAddNewGroup: (IconOption) -> Unit = { group ->
+        groupViewModel.insertGroup(group.toGroup())
+    }
+
+    NewValueContent(
+        type = type,
+        user = user, // Passa o ID do usuário (pode ser null, a UI trata)
+        groupOptions = groupOptions,
+        initialDate = LocalDate.of(
             authUiState.year,
             authUiState.month + 1,
-            LocalDate.now().dayOfMonth)
-        )
-    }
+            LocalDate.now().dayOfMonth
+        ),
+        onClose = onClose,
+        onConfirm = onConfirm,
+        onAddNewGroup = onAddNewGroup,
+        onManageGroupsClick = onManageGroupsClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewValueContent(
+    type: ValueType,
+    user: String?,
+    groupOptions: List<IconOption>,
+    initialDate: LocalDate,
+    onClose: () -> Unit,
+    onConfirm: (Double, String, LocalDate, IconOption) -> Unit,
+    onAddNewGroup: (IconOption) -> Unit,
+    onManageGroupsClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = false)
 
+    var selectedDate by rememberSaveable { mutableStateOf(initialDate) }
     var newValue by rememberSaveable { mutableStateOf("000") }
     var hasValue by remember { mutableStateOf(true) }
     var newDesc by rememberSaveable { mutableStateOf("") }
-
-    var expanded by remember { mutableStateOf(false) }
-
     var errorMessage by remember { mutableStateOf("") }
 
-    val groupOptions = groupsUiState.groups
-        .filterNotNull()
-        .map { group ->
-            val iconResId = IconUtils.getIconIdByName(group.groupName)
-            IconOption(
-                painter = painterResource(iconResId),
-                description = group.groupName,
-                groupId = group.id,
-                groupIcon = group.groupName
-            )
-        }
-
+    var expanded by remember { mutableStateOf(false) }
     var selectedGroupId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(groupOptions) {
@@ -143,8 +218,7 @@ fun NewValueScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                        ,
+                            .size(40.dp),
                     )
                     Text(
                         text = "New ${type.name}".uppercase(),
@@ -176,7 +250,7 @@ fun NewValueScreen(
 
                 // ====== VALUE FIELD ======
                 Row(
-                    horizontalArrangement = Arrangement.Start,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .padding(top = 40.dp)
@@ -185,8 +259,8 @@ fun NewValueScreen(
                 {
                     OutlinedTextField(
                         modifier = Modifier
-                            .padding(top = 5.dp)
-                            .weight(6f),
+                            .height(65.dp)
+                            .weight(9f),
                         value = newValue,
                         onValueChange = { value ->
                             newValue = value.trimStart('0')
@@ -195,7 +269,9 @@ fun NewValueScreen(
                         singleLine = true,
                         label = {
                             Text(
-                                text = "${ type.name.lowercase().replaceFirstChar { it.uppercase() } } value"
+                                text = "${
+                                    type.name.lowercase().replaceFirstChar { it.uppercase() }
+                                } value"
                             )
                         },
                         leadingIcon = {
@@ -228,53 +304,66 @@ fun NewValueScreen(
                             textAlign = TextAlign.End
                         )
                     )
-                    Column(
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
                         modifier = Modifier
-                            .height(70.dp)
-                            .weight(1f)
-                            .padding(start = 5.dp)
-
+                            .size(65.dp)
+                            .weight(2f)
                     ) {
-                        Text(
+                        OutlinedTextField(
+                            value = ".",
+                            onValueChange = { },
+                            readOnly = true,
+                            singleLine = true,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    color = Light,
+                                .matchParentSize(),
+                            leadingIcon = {
+                                selectedGroup?.let {
+                                    val iconResId = IconUtils.getIconIdByName(it.groupIcon)
+                                    Icon(
+                                        modifier = Modifier
+                                            .padding(start = 10.dp)
+                                            .size(30.dp),
+                                        painter = painterResource(iconResId),
+                                        contentDescription = it.description,
+                                        tint = Principal
+                                    )
+                                }
+                            },
+                            label = {
+                                Text(
+                                    text = "Icon",
                                 )
-                                .width(52.dp)
-                                .padding(top = 2.dp),
-                            text = "Group",
-                            textAlign = TextAlign.Center,
-                            color = LessBlack,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.W400
-                        )
-                        IconButton(
-                            modifier = Modifier
-                                .padding(top = 5.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = PrincipalLight,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .fillMaxWidth(),
-                            onClick = { expanded = true },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = PrincipalLight.copy(alpha = 0.1f)
+                            },
+                            shape = MyContabShapes.extraLarge,
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedLeadingIconColor = Principal,
+                                focusedLeadingIconColor = Principal,
+                                focusedBorderColor = Principal,
+                                focusedLabelColor = Principal,
+                                unfocusedLabelColor = NewGray,
+                                unfocusedBorderColor = PrincipalLight,
+                                unfocusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                                focusedContainerColor = PrincipalLight.copy(alpha = 0.1f),
+                                unfocusedTextColor = NewGray.copy(alpha = 0.7f),
+                                focusedTextColor = NewGray
+                            )
                         )
-                        {
-                            selectedGroup?.let {
-                                Icon(
-                                    it.painter,
-                                    contentDescription = it.description,
-                                    tint = NewGray
+                        Spacer(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    onClick = {
+                                        expanded = !expanded
+                                    },
+                                    interactionSource = interactionSource,
+                                    indication = null
                                 )
-                            }
-                        }
+                        )
                     }
                 }
 
@@ -287,6 +376,12 @@ fun NewValueScreen(
                     onValueChange = { newDesc = it },
                     singleLine = true,
                     label = { Text("Description") },
+                    placeholder = {
+                        Text(
+                            "${
+                                type.name.lowercase().replaceFirstChar { it.uppercase() }
+                            } Description")
+                    },
                     shape = MyContabShapes.extraLarge,
                     keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = KeyboardType.Text,
@@ -379,47 +474,20 @@ fun NewValueScreen(
                         }
 
                         if (missing.isNotEmpty()) {
-                            errorMessage = "Fied(s) missing: ${missing.joinToString(", ")}"
+                            errorMessage = "Field(s) missing: ${missing.joinToString(", ")}"
                             hasValue = newValue.isNotBlank() && newValue != "000"
                             return@TextButton
                         }
 
+                        // 2. Sucesso - Envia dados para o Wrapper
                         errorMessage = ""
                         hasValue = true
-
                         val value = newValue.toDouble() / 100.0
 
-                        selectedGroup?.let {
-                            when (type) {
-                                ValueType.EXPENSE -> onInsertExpense(
-                                    Expense(
-                                        expenseId = 0,
-                                        expenseValue = value,
-                                        expenseDesc = newDesc,
-                                        expenseGroupId = selectedGroup.groupId,
-                                        expenseGroupIcon = selectedGroup.groupIcon,
-                                        expenseMonth = selectedDate.monthValue,
-                                        expenseYear = selectedDate.year,
-                                        expenseDay = selectedDate.dayOfMonth
-                                    )
-                                )
-
-                                ValueType.INCOME -> onInsertIncome(
-                                    Income(
-                                        incomeId = 0,
-                                        incomeValue = value,
-                                        incomeDesc = newDesc,
-                                        incomeGroupId = selectedGroup.groupId,
-                                        incomeGroupIcon = selectedGroup.groupIcon,
-                                        incomeMonth = selectedDate.monthValue,
-                                        incomeYear = selectedDate.year,
-                                        incomeDay = selectedDate.dayOfMonth
-                                    )
-                                )
-                            }
+                        // Chamamos o Wrapper passando os dados limpos
+                        selectedGroup?.let { group ->
+                            onConfirm(value, newDesc, selectedDate, group)
                         }
-
-                        onClose()
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GreenMedium.copy(0.2f),
@@ -444,6 +512,13 @@ fun NewValueScreen(
                     groups = groupOptions,
                     onConfirm = { selected ->
                         selectedGroupId = selected
+                    },
+                    user = user!!,
+                    onAddNewGroup = { group ->
+                        onAddNewGroup(group)
+                    },
+                    onManageGroupsClick = {
+                        onManageGroupsClick()
                     }
                 )
             }
@@ -451,37 +526,17 @@ fun NewValueScreen(
     }
 }
 
-data class IconOption(
-    val painter: Painter,
-    val description: String,
-    val groupId: Int,
-    val groupIcon: String
-)
-
 @Composable
 @Preview(showBackground = true)
 fun NewValueScreenPreview() {
-    val fakeUser = User(
-        username = "Teste",
-        email = "teste@teste.com",
-        userId = "testeUserId",
-        userConfig = null
-    )
-
-    NewValueScreen(
-        type = ValueType.INCOME,
+    NewValueContent(
+        type = ValueType.EXPENSE,
+        user = "MyContabUser",
+        groupOptions = emptyList(),
+        initialDate = LocalDate.now(),
         onClose = {},
-        authUiState = AuthUiState(
-            year = 2025,
-            month = 7,
-            isLoading = false,
-            success = true,
-            errorMessage = null,
-            userLogged = fakeUser,
-            actualScreen = 0
-        ),
-        groupsUiState = GroupsUiState(),
-        onInsertIncome = {},
-        onInsertExpense = {}
+        onConfirm = { _, _, _, _ -> },
+        onAddNewGroup = {},
+        onManageGroupsClick = {}
     )
 }

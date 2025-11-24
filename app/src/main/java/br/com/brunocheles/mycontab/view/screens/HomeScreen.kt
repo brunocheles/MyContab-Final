@@ -2,6 +2,7 @@ package br.com.brunocheles.mycontab.view.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,58 +62,58 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
-import br.com.brunocheles.mycontab.ui.theme.*
-import br.com.brunocheles.mycontab.view.animations.AnimationController
+import br.com.brunocheles.mycontab.ui.theme.NewGray
+import br.com.brunocheles.mycontab.ui.theme.NewGreen
+import br.com.brunocheles.mycontab.ui.theme.NewLight
+import br.com.brunocheles.mycontab.ui.theme.NewRed
+import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.view.components.MonthPickerDialog
 import br.com.brunocheles.mycontab.view.components.TransactionItem
 import br.com.brunocheles.mycontab.view.components.ValueType
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
-import br.com.brunocheles.mycontab.view.states.AuthUiState
-import br.com.brunocheles.mycontab.view.states.ExpenseUiState
-import br.com.brunocheles.mycontab.view.states.IncomeUiState
-import br.com.brunocheles.mycontab.viewmodel.states.GroupsUiState
-import java.text.DateFormatSymbols
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
+import java.time.Month
 import java.util.Locale
 import java.util.SortedMap
 
 @Composable
 fun HomeScreen(
-    uiState: AuthUiState,
-    expenseUiState: ExpenseUiState,
-    incomeUiState: IncomeUiState,
-    groupsUiState: GroupsUiState,
+    authViewModel: AuthViewModel,
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    groupViewModel: GroupViewModel = hiltViewModel(),
     onNewValueClick: (ValueType) -> Unit,
     onEditValueClick: (Int) -> Unit,
-    onConfirmMonthYear: (Int, Int) -> Unit,
-    locale: Locale = Locale.ROOT
+    locale: Locale = Locale.getDefault()
 ) {
-    var isFABOpen by remember { mutableStateOf(false) }
-    var isMonthChangeOpen by remember { mutableStateOf(false) }
+    val authUiState by authViewModel.uiState.collectAsState()
+    val incomeUiState by incomeViewModel.uiState.collectAsState()
+    val expenseUiState by expenseViewModel.uiState.collectAsState()
+    val groupsUiState by groupViewModel.uiState.collectAsState()
 
-    val selectedMonth = uiState.month
-    val selectedYear = uiState.year
-    val userId = uiState.userLogged?.userId
+    val selectedMonth = authUiState.month
+    val selectedYear = authUiState.year
 
-    val interactionSource by remember { mutableStateOf(MutableInteractionSource()) }
-    val months = DateFormatSymbols(Locale.US).months.filter { it.isNotEmpty() }
-
-    val transitionMonth = updateTransition(targetState = isMonthChangeOpen, label = "")
-    val animationController = remember { AnimationController() }
-
-    val rotationMonth = animationController.animateFloatWithTransition(
-        transition = transitionMonth,
-        valueForTrue = 180f
-    )
-
-    LaunchedEffect(key1 = selectedMonth, key2 = selectedYear, key3 = userId) {
-        if (userId != null) {
-            // Chama a mesma função que você usava no dialog
-            onConfirmMonthYear(selectedYear, selectedMonth)
-        }
+    // 2. Callback para Atualizar Data (Sincroniza todos os ViewModels)
+    val onConfirmMonthYear: (Int, Int) -> Unit = { year, month ->
+        authViewModel.updateDate(year, month) // Se você tiver isso no Auth ou Control
+//        incomeViewModel.updateDate(month, year)
+//        expenseViewModel.updateDate(month, year)
     }
 
+    // Inicialização: Carrega dados ao entrar ou mudar usuário
+    LaunchedEffect(key1 = selectedMonth, key2 = selectedYear) {
+        incomeViewModel.updateDate(selectedMonth, selectedYear)
+        expenseViewModel.updateDate(selectedMonth, selectedYear)
+    }
+
+    // 3. Cálculos Pesados (Feitos aqui com remember para não travar a UI)
     val sumIncomes = remember(incomeUiState.incomeValuesMonth) {
         incomeUiState.incomeValuesMonth.sumOf { it?.incomeValue ?: 0.0 }
     }
@@ -121,8 +124,8 @@ fun HomeScreen(
         sumIncomes - sumExpenses
     }
 
+    // 4. Preparação da Lista Agrupada
     val sortedGroupedValues = remember(incomeUiState.incomeValuesMonth, expenseUiState.expenseValuesMonth) {
-        // 1. Mapeie os 'incomes'
         val incomesMapped = incomeUiState.incomeValuesMonth.filterNotNull().map { income ->
             ShowValueItem(
                 value = income.incomeValue,
@@ -136,8 +139,6 @@ fun HomeScreen(
                 groupIcon = income.incomeGroupIcon
             )
         }
-
-        // 2. Mapeie os 'expenses'
         val expensesMapped = expenseUiState.expenseValuesMonth.filterNotNull().map { expense ->
             ShowValueItem(
                 value = expense.expenseValue,
@@ -152,12 +153,61 @@ fun HomeScreen(
             )
         }
 
-        val allMonthValues = (incomesMapped + expensesMapped)
+        (incomesMapped + expensesMapped)
+            .filter { it.day != null }
+            .groupBy { it.day!! }
+            .toSortedMap(compareByDescending { it })
+    }
 
-        val groupedByDate = allMonthValues.groupBy { item -> item.day }
+    // 5. Chama a UI Pura
+    HomeContent(
+        selectedMonth = selectedMonth,
+        selectedYear = selectedYear,
+        sumIncomes = sumIncomes,
+        sumExpenses = sumExpenses,
+        balance = sumValues,
+        transactions = sortedGroupedValues,
+        groups = groupsUiState.groups,
+        onNewValueClick = onNewValueClick,
+        onEditValueClick = onEditValueClick,
+        onConfirmMonthYear = onConfirmMonthYear,
+        locale = locale
+    )
+}
 
-        // Retorna o mapa ordenado
-        groupedByDate.toSortedMap(compareByDescending { it })
+@Composable
+fun HomeContent(
+    selectedMonth: Int,
+    selectedYear: Int,
+    sumIncomes: Double,
+    sumExpenses: Double,
+    balance: Double,
+    transactions: SortedMap<Int, List<ShowValueItem>>,
+    groups: List<GroupsEntity?>,
+    onNewValueClick: (ValueType) -> Unit,
+    onEditValueClick: (Int) -> Unit,
+    onConfirmMonthYear: (Int, Int) -> Unit,
+    locale: Locale
+) {
+    var isFABOpen by remember { mutableStateOf(false) }
+    var isMonthChangeOpen by remember { mutableStateOf(false) }
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val currentMonthName = remember(selectedMonth, locale) {
+        try {
+            Month.of(selectedMonth + 1)
+                .getDisplayName(java.time.format.TextStyle.FULL, locale)
+                .replaceFirstChar { it.titlecase(locale) }
+        } catch (e: Exception) {
+            "Error"
+        }
+    }
+
+    // Animação da seta do mês
+    val transitionMonth = updateTransition(targetState = isMonthChangeOpen, label = "MonthArrow")
+    val rotationMonth by transitionMonth.animateFloat(label = "Rotation") { isOpen ->
+        if (isOpen) 180f else 0f
     }
 
     Box(
@@ -226,11 +276,7 @@ fun HomeScreen(
                                         .padding(start = 10.dp)
                                         .height(28.dp)
                                         .wrapContentHeight(Alignment.CenterVertically),
-                                    text = months[selectedMonth].replaceFirstChar {
-                                        it.titlecase(
-                                            locale
-                                        )
-                                    },
+                                    text = currentMonthName,
                                     fontSize = 18.sp,
                                     color = NewGray,
                                     textAlign = TextAlign.Center,
@@ -273,10 +319,10 @@ fun HomeScreen(
                                 color = NewGray
                             )
                             Text(
-                                text = "R$%.2f".format(sumValues),
+                                text = "R$%.2f".format(balance),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (sumValues > 0) NewGreen else if (sumValues < 0) NewRed else NewGray
+                                color = if (balance > 0) NewGreen else if (balance < 0) NewRed else NewGray
                             )
                         }
                     }
@@ -324,9 +370,9 @@ fun HomeScreen(
                 }
                 item {
                     RecentActivityCard(
-                        transactions = sortedGroupedValues,
+                        transactions = transactions,
                         month = selectedMonth,
-                        groups = groupsUiState.groups,
+                        groups = groups,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -522,7 +568,7 @@ fun SummaryCard(
 
 @Composable
 fun RecentActivityCard(
-    transactions: SortedMap<Int?, List<ShowValueItem>>,
+    transactions: SortedMap<Int, List<ShowValueItem>>,
     month: Int,
     groups: List<GroupsEntity?>,
     modifier: Modifier = Modifier
@@ -554,7 +600,7 @@ fun RecentActivityCard(
                 modifier = Modifier
                     .padding(top = 5.dp, end = 5.dp)
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .heightIn(max = 180.dp)
             ) {
                 transactions.forEach { (day, transactions) ->
 //                    TransactionItem(transaction, groups = groups)
@@ -607,15 +653,48 @@ fun RecentActivityCard(
 }
 
 @Composable
-@Preview
+@Preview(showBackground = true)
 fun HomeScreenPreview() {
-    HomeScreen(
-        uiState = AuthUiState(),
-        expenseUiState = ExpenseUiState(),
-        incomeUiState = IncomeUiState(),
-        groupsUiState = GroupsUiState(),
+    // 1. Dados falsos de Grupos
+    val mockGroups = listOf(
+        GroupsEntity(id = 1, groupName = "Casa", groupIcon = "Home", groupUserId = "1"),
+        GroupsEntity(id = 2, groupName = "Lazer", groupIcon = "Trip", groupUserId = "1"),
+        GroupsEntity(id = 3, groupName = "Mercado", groupIcon = "Shopping", groupUserId = "1")
+    )
+
+    // 2. Dados falsos de Transações (Map<Dia, Lista>)
+    val mockTransactions = sortedMapOf(
+        12 to listOf(
+            ShowValueItem(
+                id = 1, value = 150.50, name = "Compra Semanal",
+                day = 12, month = 10, year = 2025,
+                groupId = 3, groupIcon = "Shopping", isExpense = true
+            ),
+            ShowValueItem(
+                id = 2, value = 2500.00, name = "Salário",
+                day = 12, month = 10, year = 2025,
+                groupId = 1, groupIcon = "Wage", isExpense = false
+            )
+        ),
+        10 to listOf(
+            ShowValueItem(
+                id = 3, value = 45.00, name = "Uber",
+                day = 10, month = 10, year = 2025,
+                groupId = 2, groupIcon = "Trip", isExpense = true
+            )
+        )
+    )
+    HomeContent(
+        selectedMonth = 10,
+        selectedYear = 2025,
+        sumIncomes = 5000.00,
+        sumExpenses = 4500.25,
+        balance = 5000.00 - 4500.25,
+        transactions = mockTransactions,
+        groups = mockGroups,
         onNewValueClick = {},
         onEditValueClick = {},
-        onConfirmMonthYear = { _, _ -> }
+        onConfirmMonthYear = {_,_ -> },
+        locale = Locale.ROOT
     )
 }

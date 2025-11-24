@@ -1,6 +1,6 @@
 package br.com.brunocheles.mycontab.view.components
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +31,8 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,23 +49,22 @@ import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Principal
-import br.com.brunocheles.mycontab.view.screens.IconOption
+import br.com.brunocheles.mycontab.view.items.IconOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupSelection(
+    user : String,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     selectedGroupId: Int = 0,
     groups: List<IconOption>,
-    onConfirm: (Int) -> Unit
+    onConfirm: (Int) -> Unit,
+    onAddNewGroup: (IconOption) -> Unit,
+    onManageGroupsClick: () -> Unit
 ) {
     var selectedGroupId by rememberSaveable { mutableIntStateOf(selectedGroupId) }
-
-
-//    val selectedGroup: IconOption? = selectedGroupId.let { id ->
-//        groupOptions.firstOrNull { it.groupId == id }
-//    }
+    var addNewGroup by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         sheetState = sheetState,
@@ -78,7 +78,7 @@ fun GroupSelection(
         ) {
             Text(
                 modifier = Modifier.padding(bottom = 10.dp),
-                text = "Selecione um Grupo",
+                text = "Select a Group",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -105,7 +105,13 @@ fun GroupSelection(
                 }
                 item {
                     ListItem(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                onClick = {
+                                    addNewGroup = !addNewGroup
+                                }
+                            ),
                         leadingContent = {
                             Icon(
                                 painter = painterResource(R.drawable.rounded_add),
@@ -134,11 +140,17 @@ fun GroupSelection(
                 }
                 item {
                     ListItem(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                onClick = {
+                                    onManageGroupsClick()
+                                }
+                            ),
                         leadingContent = {
                             Icon(
                                 painter = painterResource(R.drawable.rounded_settings),
-                                contentDescription = "EditGroups",
+                                contentDescription = "ManageGroups",
                                 modifier = Modifier
                                     .size(24.dp),
                                 tint = NewGray
@@ -146,7 +158,7 @@ fun GroupSelection(
                         },
                         headlineContent = {
                             Text(
-                                text = "Edit Groups",
+                                text = "Manage Groups",
                                 textAlign = TextAlign.Start,
                                 fontWeight = FontWeight.SemiBold,
                                 color = NewGray,
@@ -211,6 +223,19 @@ fun GroupSelection(
                 }
             }
         }
+        AnimatedVisibility(
+            addNewGroup
+        ) {
+            EditGroupBottomSheet(
+                sheetState = sheetState,
+                onDismiss = {addNewGroup = false},
+                item = null,
+                userId = user,
+                onConfirm = { newGroup ->
+                    onAddNewGroup(newGroup)
+                }
+            )
+        }
     }
 }
 
@@ -220,7 +245,7 @@ fun ShowGroupSelection(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    //val iconResId = IconUtils.getIconIdByName(icon?.groupIcon)
+    val iconResId = IconUtils.getIconIdByName(icon?.groupIcon)
 
     icon?.let {
         ListItem(
@@ -232,10 +257,10 @@ fun ShowGroupSelection(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Icon(
-                        painter = it.painter,
+                        painter = painterResource(iconResId),
                         contentDescription = it.description,
                         modifier = Modifier.size(24.dp),
-                        tint = NewGray
+                        tint = if (isSelected) Principal else NewGray
                     )
                 }
             },
@@ -279,6 +304,9 @@ fun GroupSelectionPreview() {
         onDismiss = {},
         selectedGroupId = 0,
         groups = emptyList(),
-        onConfirm = {}
+        onConfirm = {},
+        onAddNewGroup = { _ -> },
+        onManageGroupsClick = {},
+        user = "MyContabUser"
     )
 }

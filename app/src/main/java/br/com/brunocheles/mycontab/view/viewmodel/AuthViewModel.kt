@@ -2,17 +2,22 @@ package br.com.brunocheles.mycontab.view.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.brunocheles.mycontab.model.di.DataStoreManager
-import br.com.brunocheles.mycontab.model.items.User
 import br.com.brunocheles.mycontab.model.data.repositories.UserRepository
+import br.com.brunocheles.mycontab.model.di.DataStoreManager
 import br.com.brunocheles.mycontab.view.states.AuthUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -20,6 +25,7 @@ import kotlinx.coroutines.launch
 sealed interface AuthUiEvent {
     data class ShowToast(val message: String) : AuthUiEvent
     data object NavigateToLoading : AuthUiEvent
+//    data object RegisterSuccess : AuthUiEvent
 }
 
 @HiltViewModel
@@ -28,140 +34,116 @@ class AuthViewModel @Inject constructor(
     private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AuthUiState())
-    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
-
     private val _uiEvent = Channel<AuthUiEvent>(Channel.BUFFERED)
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    private val _isAuthChecked = MutableStateFlow(false)
-    val isAuthChecked: StateFlow<Boolean> = _isAuthChecked
+    private val _viewState = MutableStateFlow(AuthUiState())
 
-    // 🔹 Controle interno de tela atual (índice da tab ou seção do app)
-    private val _currentScreen = MutableStateFlow(0)
-    val currentScreen: StateFlow<Int> = _currentScreen.asStateFlow()
+    val isAuthChecked: StateFlow<Boolean> = dataStoreManager.user
+        .map { true }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false
+        )
 
-    init {
-        checkUserSession()
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<AuthUiState> = combine(
+        _viewState,
+        dataStoreManager.user,
+        dataStoreManager.savedDate // Novo fluxo criado no passo 1
+    ) { viewState, sessionUser, savedDate ->
 
-    // 🔹 Verifica se já há sessão salva
-    private fun checkUserSession() {
-        viewModelScope.launch {
-            dataStoreManager.user.collect { user ->
-                _uiState.update { it.copy(userLogged = user, success = user != null) }
-                _isAuthChecked.value = true
-            }
+        // 1. Resolve o Usuário
+        val finalUser = if (sessionUser?.userId != null) {
+            sessionUser
+        } else {
+            null
         }
-    }
-
-    // 🔹 Login com Google
+        // 2. Retorna o Estado Unificado
+        viewState.copy(
+            userLogged = finalUser,
+            success = finalUser != null,
+            // AQUI ESTÁ A MÁGICA: A UI recebe a data atualizada do DataStore
+            year = savedDate.year,
+            month = savedDate.month
+        )
+    }.flatMapLatest { state ->
+        // Se tiver usuário, conectamos no Room para ter dados em tempo real (foto, config)
+        val uid = state.userLogged?.userId
+        if (uid != null) {
+            userRepository.getUserStream(uid).map { roomUser ->
+                state.copy(userLogged = roomUser ?: state.userLogged)
+            }
+        } else {
+            flowOf(state)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = AuthUiState(isLoading = true)
+    )
     fun loginWithGoogle(idToken: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, success = null) }
+            _viewState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = userRepository.loginWithGoogle(idToken)
-            handleAuthResult(result)
+
+            result.onSuccess { user ->
+                dataStoreManager.saveUserSession(user)
+                // O combine lá em cima vai atualizar o uiState.userLogged automaticamente
+                _viewState.update { it.copy(isLoading = false) }
+            }.onFailure { e ->
+                _viewState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
         }
     }
 
-    // 🔹 Login com Apple
-    fun loginWithApple(idToken: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, success = null) }
-            val result = userRepository.loginWithApple(idToken)
-            handleAuthResult(result)
-        }
-    }
-
-    // 🔹 Login com E-mail/Senha
     fun loginWithEmail(email: String, password: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, success = null) }
+            _viewState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = userRepository.loginWithEmail(email, password)
-            handleAuthResult(result)
+
+            result.onSuccess { user ->
+                dataStoreManager.saveUserSession(user)
+                // O combine lá em cima vai atualizar o uiState.userLogged automaticamente
+                _viewState.update { it.copy(isLoading = false) }
+            }.onFailure { e ->
+                _viewState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
         }
     }
 
-    // 🔹 Registro com E-mail/Senha
-    fun registerWithEmail(username: String, email: String, password: String) {
+    fun resetState() {
+        _viewState.update { AuthUiState() } // Limpa erros, loadings e flags de registro
+    }
+
+    fun registerWithEmail(email: String, username: String, password: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, success = null) }
-            val result = userRepository.registerWithEmail(email, username,password)
+            _viewState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val result = userRepository.registerWithEmail(email, username, password)
 
             result.onSuccess {
-                _uiEvent.send(AuthUiEvent.ShowToast("Conta criada com sucesso!"))
-            }
-            result.onFailure {
-                _uiEvent.send(AuthUiEvent.ShowToast("Erro ao criar conta!"))
-            }
-
-            handleAuthResult(result)
-        }
-    }
-
-    // 🔹 Handler genérico para todos os logins
-    private fun handleAuthResult(result: Result<User>) {
-        result.fold(
-            onSuccess = { user ->
-                viewModelScope.launch {
-                    dataStoreManager.saveUserSession(user)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            success = true,
-                            userLogged = user,
-                            errorMessage = null
-                        )
-                    }
-                }
-            },
-            onFailure = { e ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        success = false,
-                        errorMessage = e.message ?: "Erro na autenticação"
-                    )
-                }
-            }
-        )
-    }
-
-    // 🔹 Atualiza a data salva (ex: usada para filtragem ou tela principal)
-    fun updateDate(year: Int, month: Int) {
-        viewModelScope.launch {
-            dataStoreManager.saveDate(year, month)
-            _uiState.update {
-                it.copy(
-                    year = year,
-                    month = month
-                )
+                _uiEvent.send(AuthUiEvent.ShowToast("Conta criada! Faça Login."))
+                _viewState.update { it.copy(isLoading = false, isRegistered = true) }
+            }.onFailure { e ->
+                _viewState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    // 🔹 Atualiza o índice da tela atual (ex: tab selecionada no Scaffold)
-    fun updateScreen(index: Int) {
-        _currentScreen.value = index
-    }
-
-    // 🔹 Logout completo
     fun logout() {
         viewModelScope.launch {
             userRepository.logout()
-            dataStoreManager.logout()
-            _uiState.update { AuthUiState() }
-            _uiEvent.trySend(AuthUiEvent.NavigateToLoading)
+            dataStoreManager.logout() // Isso dispara a atualização do uiState para null
+            _uiEvent.send(AuthUiEvent.NavigateToLoading)
+            resetState()
         }
     }
 
-    // 🔹 Atualiza manualmente o usuário no estado
-    fun updateUser(user: User?) {
-        _uiState.update { it.copy(userLogged = user) }
-    }
-
-    // 🔹 Reset do estado (útil após navegação)
-    fun resetState() {
-        _uiState.update { it.copy(success = null, errorMessage = null, isLoading = false) }
+    fun updateDate(year: Int, month: Int) {
+        viewModelScope.launch {
+            dataStoreManager.saveDate(year, month)
+        }
     }
 }

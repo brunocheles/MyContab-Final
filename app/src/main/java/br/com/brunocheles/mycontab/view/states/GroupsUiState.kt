@@ -4,5 +4,6 @@ import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 
 
 data class GroupsUiState (
+    val isLoading: Boolean? = false,
     val groups: List<GroupsEntity?> = emptyList()
 )

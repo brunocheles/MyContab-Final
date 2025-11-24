@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "721382389989-pv6p9q17go5g4a8uqefrs961g2stn7tb.apps.googleusercontent.com",
+          "client_id": "721382389989-mculm26u6hncdsfve5nr9ckb5l9cujmg.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "br.com.brunocheles.mycontab",
-            "certificate_hash": "69521c171141cb81a957f2e36e6671a6e20265f6"
+            "certificate_hash": "1eb687df57f3d16324d076f87140d7d97799d488"
           }
         },
         {

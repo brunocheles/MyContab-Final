@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.room.ktx)
     implementation(libs.firebase.auth)
+    implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -84,4 +85,5 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.lottie.compose)
+    implementation(libs.coil.compose)
 }

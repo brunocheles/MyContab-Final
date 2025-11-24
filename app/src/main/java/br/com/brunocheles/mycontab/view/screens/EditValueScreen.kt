@@ -23,12 +23,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import br.com.brunocheles.mycontab.R
 import br.com.brunocheles.mycontab.model.data.entities.GroupsEntity
 import br.com.brunocheles.mycontab.ui.theme.LessBlack
@@ -57,61 +59,137 @@ import br.com.brunocheles.mycontab.ui.theme.NewRed
 import br.com.brunocheles.mycontab.ui.theme.Principal
 import br.com.brunocheles.mycontab.view.components.EditValueDialog
 import br.com.brunocheles.mycontab.view.components.TransactionItem
+import br.com.brunocheles.mycontab.view.items.IconOption
 import br.com.brunocheles.mycontab.view.items.ShowValueItem
-import br.com.brunocheles.mycontab.view.states.ExpenseUiState
-import br.com.brunocheles.mycontab.view.states.IncomeUiState
+import br.com.brunocheles.mycontab.view.items.toExpense
+import br.com.brunocheles.mycontab.view.items.toGroup
+import br.com.brunocheles.mycontab.view.items.toIncome
+import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
+import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditValueScreen(
     typeIndex: Int,
-    incomeUiState: IncomeUiState,
-    expenseUiState: ExpenseUiState,
-    groups: List<GroupsEntity?>,
-    onEdit: (ShowValueItem) -> Unit,
-    onDelete: (ShowValueItem) -> Unit,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
+    onManageGroupsClick: () -> Unit,
+    authViewModel: AuthViewModel,
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    groupViewModel: GroupViewModel = hiltViewModel()
 ) {
-    var isEditValueOpen by remember { mutableStateOf(false) }
-    var selectedItem by remember { mutableStateOf<ShowValueItem?>(null) }
-    var selectedTabIndex by remember { mutableIntStateOf(typeIndex) }
-    val tabTitles = listOf("Incomes", "Expenses")
+    val authUiState by authViewModel.uiState.collectAsState()
+    val incomeUiState by incomeViewModel.uiState.collectAsState()
+    val expenseUiState by expenseViewModel.uiState.collectAsState()
+    val groupsUiState by groupViewModel.uiState.collectAsState()
+    val user = authUiState.userLogged?.userId
+    val groups = groupsUiState.groups
+
+    val incomesList = remember(incomeUiState.incomeValuesMonth) {
+        incomeUiState.incomeValuesMonth
+            .filterNotNull()
+            .map {
+                ShowValueItem(
+                    id = it.incomeId,
+                    value = it.incomeValue,
+                    name = it.incomeDesc,
+                    day = it.incomeDay,
+                    month = it.incomeMonth,
+                    year = it.incomeYear,
+                    groupId = it.incomeGroupId,
+                    groupIcon = it.incomeGroupIcon,
+                    isExpense = false,
+                )
+            }
+    }
+    val expensesList = remember(expenseUiState.expenseValuesMonth) {
+        expenseUiState.expenseValuesMonth
+            .filterNotNull()
+            .map {
+                ShowValueItem(
+                    id = it.expenseId,
+                    value = it.expenseValue,
+                    name = it.expenseDesc,
+                    day = it.expenseDay,
+                    month = it.expenseMonth,
+                    year = it.expenseYear,
+                    groupId = it.expenseGroupId,
+                    groupIcon = it.expenseGroupIcon,
+                    isExpense = true
+                )
+            }
+    }
+
+    val onEdit: (ShowValueItem) -> Unit = { value ->
+        user?.let { userId ->
+            if (value.isExpense) {
+                expenseViewModel.updateExpense(userId, value.toExpense())
+            } else {
+                incomeViewModel.updateIncome(userId, value.toIncome())
+            }
+        }
+    }
+
+    val onDelete: (ShowValueItem) -> Unit = { value ->
+        user?.let { userId ->
+            if (value.isExpense) {
+                expenseViewModel.deleteExpense(userId, value.toExpense())
+            } else {
+                incomeViewModel.deleteIncome(userId, value.toIncome())
+            }
+        }
+    }
+
+    val onAddNewGroup: (IconOption) -> Unit = { group ->
+        groupViewModel.insertGroup(group.toGroup())
+    }
+
+    EditValueContent(
+        typeIndex = typeIndex,
+        onBackPressed = onBackPressed,
+        onManageGroupsClick = onManageGroupsClick,
+        user = user,
+        incomesList = incomesList,
+        expensesList = expensesList,
+        groupsList = groups,
+        onEdit = onEdit,
+        onAddNewGroup = onAddNewGroup,
+        onDelete = onDelete
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditValueContent(
+    typeIndex: Int,
+    onBackPressed: () -> Unit,
+    onManageGroupsClick: () -> Unit,
+    user: String?,
+    incomesList: List<ShowValueItem>,
+    expensesList: List<ShowValueItem>,
+    groupsList: List<GroupsEntity?>,
+    onEdit: (ShowValueItem) -> Unit,
+    onAddNewGroup: (IconOption) -> Unit,
+    onDelete: (ShowValueItem) -> Unit
+) {
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = false)
 
-    val incomesList = incomeUiState.incomeValuesMonth
-        .filterNotNull()
-        .map {
-        ShowValueItem(
-            id = it.incomeId,
-            value = it.incomeValue,
-            name = it.incomeDesc,
-            day = it.incomeDay,
-            month = it.incomeMonth,
-            year = it.incomeYear,
-            groupId = it.incomeGroupId,
-            groupIcon = it.incomeGroupIcon,
-            isExpense = false,
-        )
+    var selectedTabIndex by remember { mutableIntStateOf(typeIndex) }
+    val tabTitles = listOf("Incomes", "Expenses")
+
+    val currentList by remember {
+        derivedStateOf { if (selectedTabIndex == 0) incomesList else expensesList }
     }
-    val expensesList = expenseUiState.expenseValuesMonth
-        .filterNotNull()
-        .map {
-        ShowValueItem(
-            id = it.expenseId,
-            value = it.expenseValue,
-            name = it.expenseDesc,
-            day = it.expenseDay,
-            month = it.expenseMonth,
-            year = it.expenseYear,
-            groupId = it.expenseGroupId,
-            groupIcon = it.expenseGroupIcon,
-            isExpense = true
-        )
+    val totalLabel by remember {
+        derivedStateOf { if (selectedTabIndex == 0) "Total Incomes" else "Total Expenses" }
+    }
+    val totalAmount by remember(currentList) {
+        derivedStateOf { currentList.sumOf { it.value ?: 0.0 } }
     }
 
-    val currentList = if (selectedTabIndex == 0) incomesList else expensesList
-    val totalAmount = currentList.sumOf { it.value!! }
-    val totalLabel = if (selectedTabIndex == 0) "Total Incomes" else "Total Expenses"
+    var isEditValueOpen by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<ShowValueItem?>(null) }
 
     Box(
         modifier = Modifier
@@ -181,7 +259,7 @@ fun EditValueScreen(
                         Tab(
                             modifier = Modifier
                                 .background(
-                                    color = if(selectedTabIndex == index) Principal else Color.Transparent,
+                                    color = if (selectedTabIndex == index) Principal else Color.Transparent,
                                     shape = CircleShape
                                 )
                                 .clip(CircleShape),
@@ -199,7 +277,7 @@ fun EditValueScreen(
                     text = "$totalLabel: R$${"%.2f".format(totalAmount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if(selectedTabIndex == 0) NewGreen else NewRed,
+                    color = if (selectedTabIndex == 0) NewGreen else NewRed,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -214,10 +292,10 @@ fun EditValueScreen(
                 ) {
                     items(currentList, key = { it.id!! }) { transaction ->
                         TransactionListItem(
-                            groups = groups,
+                            groups = groupsList,
                             transaction = transaction,
                             onClick = {
-                                isEditValueOpen = true
+                                isEditValueOpen = !isEditValueOpen
                                 selectedItem = transaction
                             },
                             onDeleteClick = { onDelete(transaction) }
@@ -227,22 +305,29 @@ fun EditValueScreen(
             }
         }
     }
-    AnimatedVisibility(isEditValueOpen && selectedItem != null) {
+    AnimatedVisibility(isEditValueOpen) {
         selectedItem?.let { item ->
-            EditValueDialog(
-                sheetState = sheetState,
-                onDismiss = {
-                    isEditValueOpen = false
-                    selectedItem = null
-                },
-                valueItem = item,
-                groups = groups,
-                onConfirm = { updatedItem ->
-                    onEdit(updatedItem)
-                    isEditValueOpen = false
-                    selectedItem = null
-                }
-            )
+            if (user != null) {
+                EditValueDialog(
+                    sheetState = sheetState,
+                    onDismiss = {
+                        isEditValueOpen = false
+                    },
+                    valueItem = item,
+                    groups = groupsList,
+                    onConfirm = { updatedItem ->
+                        onEdit(updatedItem)
+                        isEditValueOpen = false
+                    },
+                    user = user,
+                    onAddNewGroup = { group ->
+                        onAddNewGroup(group)
+                    },
+                    onManageGroupsClick = {
+                        onManageGroupsClick()
+                    }
+                )
+            }
         }
     }
 }
@@ -265,7 +350,7 @@ fun TransactionListItem(
         Box(
             modifier = Modifier.clickable(
                 onClick = onClick
-                )
+            )
         ) {
             TransactionItem(
                 item = transaction,
@@ -284,18 +369,16 @@ fun TransactionListItem(
 @Preview(showBackground = true)
 @Composable
 fun EditValueScreenPreview() {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = LessLight
-    ) {
-        EditValueScreen(
-            typeIndex = 0,
-            incomeUiState = IncomeUiState(),
-            expenseUiState = ExpenseUiState(),
-            groups = emptyList(),
-            onEdit = {},
-            onBackPressed = {},
-            onDelete = {}
-        )
-    }
+    EditValueContent(
+        typeIndex = 0,
+        onBackPressed = {},
+        onManageGroupsClick = {},
+        user = "MyContabUser",
+        incomesList = emptyList(),
+        expensesList = emptyList(),
+        groupsList = emptyList(),
+        onEdit = {},
+        onAddNewGroup = {},
+        onDelete = {}
+    )
 }

@@ -13,35 +13,29 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import br.com.brunocheles.mycontab.view.items.toExpense
-import br.com.brunocheles.mycontab.view.items.toIncome
 import br.com.brunocheles.mycontab.view.screens.EditValueScreen
 import br.com.brunocheles.mycontab.view.screens.LoadingMinScreen
 import br.com.brunocheles.mycontab.view.screens.LoadingScreen
 import br.com.brunocheles.mycontab.view.screens.LoginScreen
+import br.com.brunocheles.mycontab.view.screens.ManageGroupsScreen
 import br.com.brunocheles.mycontab.view.screens.NewValueScreen
 import br.com.brunocheles.mycontab.view.screens.RegisterScreen
 import br.com.brunocheles.mycontab.view.screens.SplashScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthUiEvent
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
 
 @Composable
 fun SetupNavDisplay(
     activity: Activity,
     authViewModel: AuthViewModel = hiltViewModel(),
-    groupViewModel: GroupViewModel = hiltViewModel(),
-    incomeViewModel: IncomeViewModel = hiltViewModel(),
-    expenseViewModel: ExpenseViewModel = hiltViewModel()
 ) {
     val authUiState by authViewModel.uiState.collectAsState()
-    val groupUiState by groupViewModel.uiState.collectAsState()
+
+    val isAuthReady = !authUiState.isLoading
     val isAuthChecked by authViewModel.isAuthChecked.collectAsState()
-    val incomeUiState by incomeViewModel.uiState.collectAsState()
-    val expenseUiState by expenseViewModel.uiState.collectAsState()
     val backStack = rememberNavBackStack(Screen.Splash)
+
+    val userLogged = authUiState.userLogged
 
     val context = LocalContext.current
     LaunchedEffect(authViewModel) {
@@ -53,7 +47,6 @@ fun SetupNavDisplay(
                 // 💡 Logout deve levar para Splash (que verificará e irá para Login)
                 AuthUiEvent.NavigateToLoading -> {
                     backStack.clear()
-                    // Se for logout, o destino final é o Splash (ou Login)
                     backStack.add(Screen.Loading(targetScreen = Screen.Login))
                 }
             }
@@ -70,8 +63,8 @@ fun SetupNavDisplay(
         entryProvider = entryProvider {
             entry<Screen.Splash> {
                 SplashScreen(
-                    userLogged = authUiState.userLogged,
-                    isAuthChecked = isAuthChecked,
+                    userLogged = userLogged,
+                    isAuthChecked = isAuthReady,
                     onNavigateToHome = {
                         backStack.clear()
                         backStack.add(Screen.NestedGraph)
@@ -85,15 +78,8 @@ fun SetupNavDisplay(
             entry<Screen.Login> {
                 LoginScreen(
                     activity = activity,
-                    uiState = authUiState,
-                    resetLogin = {},
-                    onLoginClick = {email, password ->
-                        authViewModel.loginWithEmail(email, password)
-                    },
+                    authViewModel = authViewModel,
                     onRegisterClick = { backStack.add(Screen.LoadingMin(Screen.Register))},
-                    onGoogleLogin = { idToken ->
-                        authViewModel.loginWithGoogle(idToken)
-                    },
                     onNavigateToHome = {
                         backStack.add(Screen.Loading(Screen.NestedGraph))
                     }
@@ -102,9 +88,6 @@ fun SetupNavDisplay(
             entry<Screen.NestedGraph> {
                 SetupNestedNavDisplay(
                     authViewModel = authViewModel,
-                    groupViewModel = groupViewModel,
-                    incomeViewModel = incomeViewModel,
-                    expenseViewModel = expenseViewModel,
                     onNavigateToFullscreen = { screen ->
                         backStack.add(screen)
                     },
@@ -119,111 +102,37 @@ fun SetupNavDisplay(
                 )
             }
             entry<Screen.Register> {
-                LaunchedEffect(authUiState.success) {
-                    if (authUiState.success == true) {
-                        backStack.clear()
-                        // ✅ Registro bem-sucedido -> Loading -> Home
-                        backStack.add(Screen.Loading(targetScreen = Screen.NestedGraph))
-                    }
-                }
                 RegisterScreen(
-                    uiState = authUiState,
-                    resetRegister = { authViewModel.resetState() },
-                    onRegisterClick = { email, username, password ->
-                        authViewModel.registerWithEmail(
-                            username = username,
-                            email = email,
-                            password = password
-                        )
-                    },
+                    authViewModel = authViewModel,
                     onLoginClick = {
                         backStack.clear()
                         backStack.add(Screen.LoadingMin(Screen.Login))
                     }
                 )
             }
-            entry<Screen.NewValue> { it ->
+            entry<Screen.NewValue> {
                 NewValueScreen(
                     type = it.type,
                     onClose = {
                         backStack.clear()
                         backStack.add(Screen.LoadingMin(Screen.NestedGraph))
                     },
-                    authUiState = authUiState,
-                    groupsUiState = groupUiState,
-                    onInsertIncome = { income ->
-                        authUiState.userLogged?.userId?.let {
-                            incomeViewModel.insertIncome(
-                                userId = it,
-                                income = income
-                            )
-                        }
-                        backStack.clear()
-                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
-                    },
-                    onInsertExpense = { expense ->
-                        authUiState.userLogged?.userId?.let {
-                            expenseViewModel.insertExpense(
-                                userId = it,
-                                expense = expense
-                            )
-                        }
-                        backStack.clear()
-                        backStack.add(Screen.LoadingMin(Screen.NestedGraph))
+                    authViewModel = authViewModel,
+                    onManageGroupsClick = {
+                        backStack.add(Screen.ManageGroups)
                     }
                 )
             }
-            entry<Screen.EditValue> { it ->
+            entry<Screen.EditValue> {
                 EditValueScreen(
                     typeIndex = it.index,
-                    incomeUiState = incomeUiState,
-                    expenseUiState = expenseUiState,
-                    groups = groupUiState.groups,
-                    onEdit = { value ->
-                        when (value.isExpense) {
-                            true -> {
-                                authUiState.userLogged?.userId?.let {
-                                    expenseViewModel.updateExpense(
-                                        userId = it,
-                                        expense = value.toExpense()
-                                    )
-                                }
-                            }
-
-                            false -> {
-                                authUiState.userLogged?.userId?.let {
-                                    incomeViewModel.updateIncome(
-                                        userId = it,
-                                        income = value.toIncome()
-                                    )
-                                }
-                            }
-                        }
-                    },
                     onBackPressed = {
                         backStack.clear()
                         backStack.add(Screen.LoadingMin(Screen.NestedGraph))
                     },
-                    onDelete = { value ->
-                        when(value.isExpense) {
-                            true -> {
-                                authUiState.userLogged?.userId?.let {
-                                    expenseViewModel.deleteExpense(
-                                        userId = it,
-                                        expense = value.toExpense()
-                                    )
-                                }
-                            }
-                            false -> {
-                                authUiState.userLogged?.userId?.let {
-                                    incomeViewModel.deleteIncome(
-                                        userId = it,
-                                        income = value.toIncome()
-                                    )
-                                }
-                            }
-                        }
-
+                    authViewModel = authViewModel,
+                    onManageGroupsClick = {
+                        backStack.add(Screen.ManageGroups)
                     }
                 )
             }
@@ -232,6 +141,14 @@ fun SetupNavDisplay(
                     navigateScreen = {
                         backStack.clear()
                         backStack.add(it.targetScreen)
+                    }
+                )
+            }
+            entry<Screen.ManageGroups> {
+                ManageGroupsScreen(
+                    authViewModel = authViewModel,
+                    onBackClick = {
+                        backStack.removeLastOrNull()
                     }
                 )
             }

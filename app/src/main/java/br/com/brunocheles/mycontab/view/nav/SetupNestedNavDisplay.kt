@@ -1,7 +1,6 @@
 package br.com.brunocheles.mycontab.view.nav
 
 import android.app.Activity
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -32,29 +30,22 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import br.com.brunocheles.mycontab.ui.theme.*
+import br.com.brunocheles.mycontab.ui.theme.LessLight
+import br.com.brunocheles.mycontab.ui.theme.LessWhite
+import br.com.brunocheles.mycontab.ui.theme.NewGray
+import br.com.brunocheles.mycontab.ui.theme.Principal
+import br.com.brunocheles.mycontab.ui.theme.Typography
 import br.com.brunocheles.mycontab.view.screens.HomeScreen
 import br.com.brunocheles.mycontab.view.screens.ProfileScreen
 import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
-import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
 
 @Composable
 fun SetupNestedNavDisplay(
     onNavigateToFullscreen: (Screen) -> Unit,
-    authViewModel: AuthViewModel,
-    groupViewModel: GroupViewModel,
-    incomeViewModel: IncomeViewModel,
-    expenseViewModel: ExpenseViewModel
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
     val backStack = rememberNavBackStack(BottomBarScreen.Home)
-
-    val authUiState by authViewModel.uiState.collectAsState()
-    val groupUiState by groupViewModel.uiState.collectAsState()
-    val incomeUiState by incomeViewModel.uiState.collectAsState()
-    val expenseUiState by expenseViewModel.uiState.collectAsState()
 
     var currentBottomBarScreen: BottomBarScreen by rememberSaveable(
         stateSaver = BottomBarScreenSaver
@@ -125,34 +116,12 @@ fun SetupNestedNavDisplay(
             entryProvider = entryProvider {
                 entry<BottomBarScreen.Home> {
                     HomeScreen(
-                        uiState = authUiState,
-                        expenseUiState = expenseUiState,
-                        incomeUiState = incomeUiState,
-                        groupsUiState = groupUiState,
+                        authViewModel = authViewModel,
                         onNewValueClick = { type ->
                             onNavigateToFullscreen(Screen.NewValue(type))
                         },
                         onEditValueClick = { index ->
                             onNavigateToFullscreen(Screen.EditValue(index))
-                        },
-                        onConfirmMonthYear = { year, month ->
-                            authViewModel.updateDate(year, month)
-
-                            val userId = authUiState.userLogged?.userId
-
-                            if (userId == null) {
-                                // Opcional: Mostrar um erro aqui, se desejar
-                                Toast.makeText(
-                                    context,
-                                    "Erro: Usuário não logado",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } else {
-                                expenseViewModel.getAllExpensesMonth(userId, month, year)
-                                expenseViewModel.getAllExpensesYear(userId, year)
-                                incomeViewModel.getAllIncomesMonth(userId, month, year)
-                                incomeViewModel.getAllIncomesYear(userId, year)
-                            }
                         }
                     )
                 }
@@ -191,10 +160,7 @@ fun SetupNestedNavDisplay(
                 }
                 entry<BottomBarScreen.Profile> {
                     ProfileScreen(
-                        authUiState = authUiState,
-                        onLogoutClick = {
-                            authViewModel.logout()
-                        }
+                        authViewModel = authViewModel
                     )
                 }
             }

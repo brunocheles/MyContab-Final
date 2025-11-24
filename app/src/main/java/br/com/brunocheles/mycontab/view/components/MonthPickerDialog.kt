@@ -1,6 +1,5 @@
 package br.com.brunocheles.mycontab.view.components
 
-import android.widget.NumberPicker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,8 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -35,14 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Light
 import br.com.brunocheles.mycontab.ui.theme.MyContabShapes
+import br.com.brunocheles.mycontab.ui.theme.NewGray
 import br.com.brunocheles.mycontab.ui.theme.Principal
-import java.text.DateFormatSymbols
-import java.time.LocalDate
+import java.time.Month
+import java.time.format.TextStyle
 import java.util.Locale
 
 
@@ -52,11 +50,20 @@ fun MonthPickerDialog(
     currentYear: Int,
     currentMonth: Int,
     onConfirm: (Int, Int) -> Unit,
-    minYear: Int = 1950,
-    maxYear: Int = LocalDate.now().year + 50
+    minYear: Int = 1900,
+    maxYear: Int = 2100,
+    locale: Locale = Locale.getDefault()
 ) {
-    val years: List<Int> = (minYear..maxYear).toList()
-    val months = DateFormatSymbols(Locale.US).shortMonths.filter { it.isNotEmpty() }
+    val years = remember(minYear, maxYear) { (minYear..maxYear).toList() }
+
+    val months = remember(locale) {
+        (1..12).map { month ->
+            Month.of(month)
+                .getDisplayName(TextStyle.SHORT, locale)
+                .replaceFirstChar { it.titlecase(locale) }
+        }
+    }
+
     var selectedYear by remember { mutableIntStateOf(currentYear) }
     var selectedMonth by remember { mutableIntStateOf(currentMonth) }
 
@@ -73,13 +80,16 @@ fun MonthPickerDialog(
         {
             Column {
                 Row(
-                    modifier = Modifier,
+                    modifier = Modifier.padding(
+                        bottom = 10.dp
+                    ),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 )
                 {
                     Box(
                         modifier = Modifier
+                            .width(100.dp)
                             .background(
                                 shape = RoundedCornerShape(
                                     topStart = 20.dp,
@@ -87,33 +97,40 @@ fun MonthPickerDialog(
                                 ),
                                 color = Light
                             )
-                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                            .padding(horizontal = 20.dp)
                             .clipToBounds(),
                         contentAlignment = Alignment.Center
                     )
                     {
-                        AndroidView(
-                            modifier = Modifier
-                                .wrapContentSize(),
-                            factory = { context ->
-                                NumberPicker(context).apply {
-                                    textSize = 60f
-                                    minValue = years.first()
-                                    maxValue = years.last()
-                                    value = selectedYear
-                                    selectionDividerHeight = 0
-                                    descendantFocusability = NumberPicker.FOCUS_BLOCK_DESCENDANTS
-                                    setOnValueChangedListener { _, _, newVal ->
-                                        selectedYear = newVal
-                                    }
-                                }
-                            },
-                            update = { picker ->
-                                picker.minValue = years.first()
-                                picker.maxValue = years.last()
-                                picker.value = selectedYear
+                        ComposeYearPicker(
+                            years = years,
+                            selectedYear = selectedYear,
+                            onYearSelected = { newYear ->
+                                selectedYear = newYear
                             }
                         )
+//                        AndroidView(
+//                            modifier = Modifier
+//                                .wrapContentSize(),
+//                            factory = { context ->
+//                                NumberPicker(context).apply {
+//                                    textSize = 60f
+//                                    minValue = years.first()
+//                                    maxValue = years.last()
+//                                    value = selectedYear
+//                                    selectionDividerHeight = 0
+//                                    descendantFocusability = NumberPicker.FOCUS_BLOCK_DESCENDANTS
+//                                    setOnValueChangedListener { _, _, newVal ->
+//                                        selectedYear = newVal
+//                                    }
+//                                }
+//                            },
+//                            update = { picker ->
+//                                picker.minValue = years.first()
+//                                picker.maxValue = years.last()
+//                                picker.value = selectedYear
+//                            }
+//                        )
                     }
                     Box(
                         modifier = Modifier

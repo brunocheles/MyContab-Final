@@ -5,16 +5,23 @@ import androidx.lifecycle.viewModelScope
 import br.com.brunocheles.mycontab.model.components.Expense
 import br.com.brunocheles.mycontab.model.data.repositories.ExpenseRepository
 import br.com.brunocheles.mycontab.model.di.DataStoreManager
+import br.com.brunocheles.mycontab.view.items.DateFilter
 import br.com.brunocheles.mycontab.view.states.ExpenseUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 sealed class ExpenseUiEvent {
     // Evento para quando salvar der certo
@@ -27,160 +34,94 @@ sealed class ExpenseUiEvent {
 @HiltViewModel
 class ExpenseViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
-    private val dataStoreManager: DataStoreManager
-): ViewModel() {
+    dataStoreManager: DataStoreManager
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ExpenseUiState())
-    val uiState: StateFlow<ExpenseUiState> = _uiState.asStateFlow()
+    private val today = LocalDate.now()
+
+    private val _dateFilter = MutableStateFlow(
+        DateFilter(month = today.monthValue, year = today.year)
+    )
 
     private val _uiEvent = MutableSharedFlow<ExpenseUiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    private var activeLoadingJobs = 0
-    private var currentUserId: String? = null
-    private var currentMonth: Int? = null
-    private var currentYear: Int? = null
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<ExpenseUiState> = combine(
+        dataStoreManager.user,
+        _dateFilter
+    ) { user, date ->
+        Pair(user, date)
+    }.flatMapLatest { (user, date) ->
+        val userId = user?.userId
 
+        if (userId == null) {
+            flowOf(ExpenseUiState(isLoading = false))
+        } else {
+            // Executa as duas queries (Mês e Ano) em paralelo e combina os resultados
+            combine(
+                expenseRepository.getMonthExpensesStream(userId, date.month, date.year),
+                expenseRepository.getYearExpensesStream(userId, date.year)
+            ) { monthList, yearList ->
+                ExpenseUiState(
+                    expenseValuesMonth = monthList,
+                    expenseValuesYear = yearList,
+                    isLoading = false
+                )
+            }
+                // Opcional: emitir estado de loading ao começar a troca
+                .onStart { emit(ExpenseUiState(isLoading = true)) }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ExpenseUiState(isLoading = true)
+    )
 
-    fun getAllExpensesMonth(userId:String, month: Int, year: Int) {
+    fun updateDate(month: Int, year: Int) {
+        // Nota: Verifique se sua UI manda mês 0-11 ou 1-12.
+        // Se vier do Calendar do Java (0-11), some 1 aqui.
+        // Se vier do LocalDate (1-12), use direto.
+        // Assumindo que sua UI manda 0-11 (pelo código antigo `month + 1`):
+        _dateFilter.value = DateFilter(month + 1, year)
+    }
 
-        currentUserId = userId
-        currentMonth = month + 1
-        currentYear = year
-
-        activeLoadingJobs++
-        _uiState.update { it.copy(isLoading = true) }
-
+    fun insertExpense(userId: String, expense: Expense) {
         viewModelScope.launch {
-            try {
-
-                val result = expenseRepository.getAllMonthExpenses(currentUserId!!, currentMonth!!, currentYear!!)
-
-                result.onSuccess { expensesList ->
-                    _uiState.update {
-                        it.copy(expenseValuesMonth = expensesList)
-                    }
+            // Loading será tratado pelo stateIn ou onStart se quiser algo muito reativo,
+            // mas para insert rápido, geralmente nem precisa mostrar loading full screen.
+            expenseRepository.insertExpense(userId, expense)
+                .onSuccess {
                     _uiEvent.emit(ExpenseUiEvent.OnSuccess)
-                }.onFailure { error ->
-                    val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                    _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
                 }
-            } finally {
-                activeLoadingJobs--
-
-                if (activeLoadingJobs == 0) {
-                    _uiState.update { it.copy(isLoading = false) }
+                .onFailure { error ->
+                    _uiEvent.emit(ExpenseUiEvent.ShowError(error.message ?: "Erro ao inserir"))
                 }
-            }
         }
     }
 
-    private fun refreshData() {
-        if (currentUserId != null && currentMonth != null && currentYear != null) {
-            getAllExpensesMonth(currentUserId!!, currentMonth!!, currentYear!!)
-        }
-        // Se tiver o método de carregar o ano também, chame aqui:
-        if (currentUserId != null && currentYear != null) {
-            getAllExpensesYear(currentUserId!!, currentYear!!)
-        }
-    }
-
-    fun getAllExpensesYear(userId: String,year: Int) {
-
-        currentUserId = userId
-        currentYear = year
-
-        activeLoadingJobs++
-        _uiState.update { it.copy(isLoading = true) }
-
+    fun updateExpense(userId: String, expense: Expense) {
         viewModelScope.launch {
-            try {
-                val result = expenseRepository.getAllYearExpenses(currentUserId!!, currentYear!!)
-
-                result.onSuccess { expensesList ->
-                    _uiState.update {
-                        it.copy(expenseValuesYear = expensesList)
-                    }
+            // Não precisamos atualizar a lista manualmente! O Room fará isso.
+            expenseRepository.updateExpense(userId, expense)
+                .onSuccess {
                     _uiEvent.emit(ExpenseUiEvent.OnSuccess)
-                }.onFailure { error ->
-                    val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                    _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
                 }
-            } finally {
-                activeLoadingJobs--
-
-                if (activeLoadingJobs == 0) {
-                    _uiState.update { it.copy(isLoading = false) }
+                .onFailure {
+                    _uiEvent.emit(ExpenseUiEvent.ShowError("Erro ao atualizar"))
                 }
-            }
         }
     }
 
-    fun insertExpense(userId:String, expense: Expense) {
+    fun deleteExpense(userId: String, expense: Expense) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val result = expenseRepository.insertExpense(userId, expense)
-
-            result.onSuccess {
-                _uiEvent.emit(ExpenseUiEvent.OnSuccess)
-                refreshData()
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun updateExpense(userId:String, expense: Expense) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val currentList = _uiState.value.expenseValuesMonth.toMutableList()
-
-            val index = currentList.indexOfFirst { it?.expenseId == expense.expenseId }
-
-            if (index != -1) {
-                currentList[index] = expense
-
-                _uiState.update { it.copy(expenseValuesMonth = currentList) }
-            }
-
-            val result = expenseRepository.updateExpense(userId, expense)
-
-            result.onSuccess {
-                _uiEvent.emit(ExpenseUiEvent.OnSuccess)
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun deleteExpense(userId:String, expense: Expense) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val currentList = _uiState.value.expenseValuesMonth.toMutableList()
-
-            val removed = currentList.removeIf { it?.expenseId == expense.expenseId }
-
-            if (removed) {
-                _uiState.update { it.copy(expenseValuesMonth = currentList) }
-            }
-
-            val result = expenseRepository.deleteExpense(userId, expense)
-
-            result.onSuccess {
-                _uiEvent.emit(ExpenseUiEvent.OnSuccess)
-                refreshData()
-            }.onFailure { error ->
-                val errorMessage = error.message ?: "Erro desconhecido ao salvar."
-                _uiEvent.emit(ExpenseUiEvent.ShowError(errorMessage))
-            }
-            _uiState.update { it.copy(isLoading = false) }
+            expenseRepository.deleteExpense(userId, expense)
+                .onSuccess {
+                    _uiEvent.emit(ExpenseUiEvent.OnSuccess)
+                }
+                .onFailure {
+                    _uiEvent.emit(ExpenseUiEvent.ShowError("Erro ao deletar"))
+                }
         }
     }
 }

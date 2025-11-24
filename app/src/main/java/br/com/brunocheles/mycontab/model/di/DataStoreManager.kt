@@ -2,6 +2,7 @@ package br.com.brunocheles.mycontab.model.di
 
 import android.util.Log
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.IOException
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -16,6 +17,9 @@ import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
+
+
+data class UserDate(val year: Int, val month: Int)
 
 @Singleton
 class DataStoreManager @Inject constructor(
@@ -36,10 +40,18 @@ class DataStoreManager @Inject constructor(
         val IS_FIRST_START = booleanPreferencesKey("is_first_start")
     }
 
+    val savedDate: Flow<UserDate> = dataStore.data.map { preferences ->
+        val today = LocalDate.now()
+        val year = preferences[YEAR_KEY] ?: today.year
+        val month = preferences[MONTH_KEY] ?: (today.monthValue - 1)
+
+        UserDate(year, month)
+    }
+
     val user: Flow<User?> = dataStore.data
         .catch { e ->
-            if (e is ClassCastException) {
-                Log.e("DataStore", "ClassCastException — limpando DataStore")
+            if (e is IOException) {
+                Log.e("DataStore", "Erro ao ler preferências.", e)
                 emit(emptyPreferences())
                 dataStore.edit { it.clear() }
             } else throw e
@@ -89,7 +101,9 @@ class DataStoreManager @Inject constructor(
     // --- CLEAR SESSION ---
     suspend fun logout() {
         dataStore.edit { prefs ->
+            val wasFirstStart = prefs[IS_FIRST_START] ?: false
             prefs.clear()
+            prefs[IS_FIRST_START] = wasFirstStart
         }
     }
 

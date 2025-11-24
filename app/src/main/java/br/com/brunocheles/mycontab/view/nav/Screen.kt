@@ -13,6 +13,8 @@ sealed class Screen: NavKey {
     @Serializable
     data object Register : Screen()
     @Serializable
+    data object ManageGroups : Screen()
+    @Serializable
     data class Loading(val targetScreen: Screen) : Screen()
     @Serializable
     data class LoadingMin(val targetScreen: Screen) : Screen()
