@@ -47,17 +47,18 @@ fun UserSettingsContent(
             fallback = painterResource(R.drawable.android),
             contentScale = ContentScale.Crop, // Garante que a foto preencha o círculo sem distorcer
             modifier = Modifier
-                .size(120.dp)
+                .size(80.dp)
                 .clip(CircleShape) // Corta a imagem em círculo
                 .border(width = 2.dp, color = NewGray, shape = CircleShape)
         )
-
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = user.username!!,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        user.username?.let {
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = it,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         user.email?.let {
             Text(
                 text = it,
@@ -91,7 +92,10 @@ fun UserSettingsContent(
 @Composable
 fun UserSettingsContentPreview() {
     UserSettingsContent(
-        user = User(),
+        user = User(
+            username = "Teste",
+            email = "teste@teste.com"
+        ),
         onLogoutClick = {}
     )
 }

@@ -127,7 +127,7 @@ fun SetupNavDisplay(
                 EditValueScreen(
                     typeIndex = it.index,
                     onBackPressed = {
-                        backStack.clear()
+//                        backStack.clear()
                         backStack.add(Screen.LoadingMin(Screen.NestedGraph))
                     },
                     authViewModel = authViewModel,

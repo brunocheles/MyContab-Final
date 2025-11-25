@@ -122,6 +122,7 @@ class UserRepository @Inject constructor(
     private fun UserEntity.toDomain() = User(
         userId = firebaseId,
         username = userName,
+        email = userEmail,
         userConfig = userConfig,
         photoUrl = userPhoto,
         provider = "local"
@@ -131,6 +132,7 @@ class UserRepository @Inject constructor(
         userId = 0, // Será sobrescrito pela lógica do saveUserToRoom
         firebaseId = userId ?: "",
         userName = username ?: "",
+        userEmail = email ?: "",
         userConfig = userConfig,
         userPhoto = photoUrl
     )

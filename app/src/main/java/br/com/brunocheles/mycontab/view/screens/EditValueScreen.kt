@@ -178,12 +178,10 @@ fun EditValueContent(
     var selectedTabIndex by remember { mutableIntStateOf(typeIndex) }
     val tabTitles = listOf("Incomes", "Expenses")
 
-    val currentList by remember {
-        derivedStateOf { if (selectedTabIndex == 0) incomesList else expensesList }
-    }
-    val totalLabel by remember {
-        derivedStateOf { if (selectedTabIndex == 0) "Total Incomes" else "Total Expenses" }
-    }
+    val currentList = if (selectedTabIndex == 0) incomesList else expensesList
+
+    val totalLabel = if (selectedTabIndex == 0) "Total Incomes" else "Total Expenses"
+    
     val totalAmount by remember(currentList) {
         derivedStateOf { currentList.sumOf { it.value ?: 0.0 } }
     }

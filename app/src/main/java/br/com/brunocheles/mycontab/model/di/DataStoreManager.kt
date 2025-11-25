@@ -47,6 +47,13 @@ class DataStoreManager @Inject constructor(
 
         UserDate(year, month)
     }
+    // --- DATE PERSISTENCE (mantida) ---
+    suspend fun saveDate(year: Int, month: Int) {
+        dataStore.edit { prefs ->
+            prefs[YEAR_KEY] = year
+            prefs[MONTH_KEY] = month
+        }
+    }
 
     val user: Flow<User?> = dataStore.data
         .catch { e ->
@@ -104,14 +111,6 @@ class DataStoreManager @Inject constructor(
             val wasFirstStart = prefs[IS_FIRST_START] ?: false
             prefs.clear()
             prefs[IS_FIRST_START] = wasFirstStart
-        }
-    }
-
-    // --- DATE PERSISTENCE (mantida) ---
-    suspend fun saveDate(year: Int, month: Int) {
-        dataStore.edit { prefs ->
-            prefs[YEAR_KEY] = year
-            prefs[MONTH_KEY] = month
         }
     }
 

@@ -5,23 +5,22 @@ import androidx.lifecycle.viewModelScope
 import br.com.brunocheles.mycontab.model.components.Expense
 import br.com.brunocheles.mycontab.model.data.repositories.ExpenseRepository
 import br.com.brunocheles.mycontab.model.di.DataStoreManager
-import br.com.brunocheles.mycontab.view.items.DateFilter
 import br.com.brunocheles.mycontab.view.states.ExpenseUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 sealed class ExpenseUiEvent {
     // Evento para quando salvar der certo
@@ -37,11 +36,6 @@ class ExpenseViewModel @Inject constructor(
     dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
-    private val today = LocalDate.now()
-
-    private val _dateFilter = MutableStateFlow(
-        DateFilter(month = today.monthValue, year = today.year)
-    )
 
     private val _uiEvent = MutableSharedFlow<ExpenseUiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
@@ -49,7 +43,7 @@ class ExpenseViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<ExpenseUiState> = combine(
         dataStoreManager.user,
-        _dateFilter
+        dataStoreManager.savedDate
     ) { user, date ->
         Pair(user, date)
     }.flatMapLatest { (user, date) ->
@@ -58,33 +52,32 @@ class ExpenseViewModel @Inject constructor(
         if (userId == null) {
             flowOf(ExpenseUiState(isLoading = false))
         } else {
-            // Executa as duas queries (Mês e Ano) em paralelo e combina os resultados
-            combine(
-                expenseRepository.getMonthExpensesStream(userId, date.month, date.year),
-                expenseRepository.getYearExpensesStream(userId, date.year)
-            ) { monthList, yearList ->
-                ExpenseUiState(
-                    expenseValuesMonth = monthList,
-                    expenseValuesYear = yearList,
-                    isLoading = false
+            flow {
+                emit(ExpenseUiState(isLoading = true))
+
+                delay(100)
+
+                val dbMonth = date.month + 1
+
+                emitAll(
+                    combine(
+                        expenseRepository.getMonthExpensesStream(userId, dbMonth, date.year),
+                        expenseRepository.getYearExpensesStream(userId, date.year)
+                    ) { monthList, yearList ->
+                        ExpenseUiState(
+                            expenseValuesMonth = monthList,
+                            expenseValuesYear = yearList,
+                            isLoading = false
+                        )
+                    }
                 )
             }
-                // Opcional: emitir estado de loading ao começar a troca
-                .onStart { emit(ExpenseUiState(isLoading = true)) }
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = ExpenseUiState(isLoading = true)
     )
-
-    fun updateDate(month: Int, year: Int) {
-        // Nota: Verifique se sua UI manda mês 0-11 ou 1-12.
-        // Se vier do Calendar do Java (0-11), some 1 aqui.
-        // Se vier do LocalDate (1-12), use direto.
-        // Assumindo que sua UI manda 0-11 (pelo código antigo `month + 1`):
-        _dateFilter.value = DateFilter(month + 1, year)
-    }
 
     fun insertExpense(userId: String, expense: Expense) {
         viewModelScope.launch {

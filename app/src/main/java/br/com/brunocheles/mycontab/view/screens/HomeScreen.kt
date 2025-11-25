@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,11 +45,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +79,8 @@ import br.com.brunocheles.mycontab.view.viewmodel.AuthViewModel
 import br.com.brunocheles.mycontab.view.viewmodel.ExpenseViewModel
 import br.com.brunocheles.mycontab.view.viewmodel.GroupViewModel
 import br.com.brunocheles.mycontab.view.viewmodel.IncomeViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Month
 import java.util.Locale
 import java.util.SortedMap
@@ -97,20 +100,14 @@ fun HomeScreen(
     val expenseUiState by expenseViewModel.uiState.collectAsState()
     val groupsUiState by groupViewModel.uiState.collectAsState()
 
+    val isLoadingData = incomeUiState.isLoading || expenseUiState.isLoading
+
     val selectedMonth = authUiState.month
     val selectedYear = authUiState.year
 
     // 2. Callback para Atualizar Data (Sincroniza todos os ViewModels)
     val onConfirmMonthYear: (Int, Int) -> Unit = { year, month ->
         authViewModel.updateDate(year, month) // Se você tiver isso no Auth ou Control
-//        incomeViewModel.updateDate(month, year)
-//        expenseViewModel.updateDate(month, year)
-    }
-
-    // Inicialização: Carrega dados ao entrar ou mudar usuário
-    LaunchedEffect(key1 = selectedMonth, key2 = selectedYear) {
-        incomeViewModel.updateDate(selectedMonth, selectedYear)
-        expenseViewModel.updateDate(selectedMonth, selectedYear)
     }
 
     // 3. Cálculos Pesados (Feitos aqui com remember para não travar a UI)
@@ -171,7 +168,8 @@ fun HomeScreen(
         onNewValueClick = onNewValueClick,
         onEditValueClick = onEditValueClick,
         onConfirmMonthYear = onConfirmMonthYear,
-        locale = locale
+        locale = locale,
+        isLoadingData = isLoadingData
     )
 }
 
@@ -187,8 +185,13 @@ fun HomeContent(
     onNewValueClick: (ValueType) -> Unit,
     onEditValueClick: (Int) -> Unit,
     onConfirmMonthYear: (Int, Int) -> Unit,
-    locale: Locale
+    locale: Locale,
+    isLoadingData: Boolean
 ) {
+    val scope = rememberCoroutineScope()
+    var isLocalLoading by remember { mutableStateOf(false) }
+    val showLoadingOverlay = isLoadingData || isLocalLoading
+
     var isFABOpen by remember { mutableStateOf(false) }
     var isMonthChangeOpen by remember { mutableStateOf(false) }
 
@@ -431,6 +434,26 @@ fun HomeContent(
                 )
             }
         }
+        AnimatedVisibility(
+            visible = showLoadingOverlay,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.matchParentSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(NewLight) // 🔥 Use uma opacidade forte para cobrir tudo
+                    .clickable(enabled = false) {}, // Bloqueia cliques por baixo
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Principal,
+                    strokeWidth = 4.dp,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        }
     }
     AnimatedVisibility(
         visible = isMonthChangeOpen
@@ -442,7 +465,19 @@ fun HomeContent(
             currentYear = selectedYear,
             currentMonth = selectedMonth,
             onConfirm = { newYear, newMonth ->
-                onConfirmMonthYear(newYear, newMonth)
+                isMonthChangeOpen = false
+
+                scope.launch {
+                    isLocalLoading = true
+
+                    delay(350)
+
+                    onConfirmMonthYear(newYear, newMonth)
+
+                    delay(150)
+
+                    isLocalLoading = false
+                }
             }
         )
     }
@@ -695,6 +730,7 @@ fun HomeScreenPreview() {
         onNewValueClick = {},
         onEditValueClick = {},
         onConfirmMonthYear = {_,_ -> },
-        locale = Locale.ROOT
+        locale = Locale.ROOT,
+        isLoadingData = false
     )
 }

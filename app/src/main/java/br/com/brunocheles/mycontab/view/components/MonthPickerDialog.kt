@@ -211,7 +211,6 @@ fun MonthPickerDialog(
                         contentPadding = PaddingValues(5.dp),
                         onClick = {
                             onConfirm(selectedYear, selectedMonth)
-                            onDismiss()
                         }
                     )
                     {
